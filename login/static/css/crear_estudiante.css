@@ -1,0 +1,123 @@
+/* static/css/styles.css */
+
+/* Estilos generales */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #333;  /* Fondo oscuro */
+    color: white;  /* Color de texto blanco */
+}
+
+/* Estilos para el título */
+h1 {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 2.5rem;  /* Tamaño grande para el título */
+    color: white;  /* Color blanco para el título */
+}
+
+/* Estilos para el formulario */
+form {
+    max-width: 600px;
+    width: 100%;
+    margin: 20px auto;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #444;  /* Fondo oscuro para el formulario */
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Estilos para las etiquetas de los inputs */
+form label {
+    font-size: 1.2rem;  /* Tamaño de letra más grande para las etiquetas */
+    color: white;  /* Color blanco para las etiquetas */
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Estilos para los inputs */
+form input, form textarea, form select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    border: 1px solid #666;
+    border-radius: 4px;
+    font-size: 1rem;  /* Tamaño de letra para los inputs */
+    background-color: #555;  /* Fondo oscuro para los inputs */
+    color: white;  /* Color blanco para el texto de los inputs */
+}
+
+/* Estilos para el botón */
+form button {
+    width: 100%;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;  /* Tamaño de letra más grande para el botón */
+}
+
+form button:hover {
+    background-color: #218838;
+}
+
+/* Estilos para los mensajes flotantes */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: fadeOut 5s forwards;
+    max-width: 300px;
+    width: 90%;
+}
+
+.main-content {
+    flex-grow: 1;
+    background-color: #A42759; /* Rojo */
+    border-radius: 0 20px 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Opcional: centra verticalmente */
+    padding: 20px;
+}
+
+
+.alert-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+
+.alert-error {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+
+/* Animación para desvanecer el mensaje */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+/* Ajustar la posición en dispositivos pequeños */
+@media (max-width: 600px) {
+    .alert {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        margin: 0 auto;
+    }
+}

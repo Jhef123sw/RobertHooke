@@ -1,0 +1,53 @@
+{% extends base_template %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Estudiante</title>
+    <!-- Cargar archivo CSS estático -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/crear_estudiante.css' %}">
+</head>
+<body>
+    <div class="main-content">
+        <h1>Registrar Estudiante</h1>
+
+        <!-- Mostrar mensajes flotantes -->
+        {% if messages %}
+            <div>
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Formulario de registro -->
+        <form method="post" id="registroForm">
+            {% csrf_token %}
+            
+            <label for="id_nombre">Nombre del estudiante:</label>
+            {{ form.nombre }}
+
+            <!-- Campo de usuario -->
+            <label for="id_usuario">Usuario:</label>
+            {{ form.usuario }}
+            
+            <!-- Campo de contraseña -->
+            <label for="id_contraseña">Contraseña:</label>
+            {{ form.contraseña }}
+            
+            <!-- Botón de registro -->
+            <button type="submit">Registrar</button>
+        </form>
+
+        <!-- Cargar archivo JavaScript estático -->
+        <script src="{% static 'js/crear_estudiante.js' %}"></script>
+    </div>
+</body>
+</html>
+{% endblock %}

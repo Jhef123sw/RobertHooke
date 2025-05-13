@@ -1,0 +1,38 @@
+{% extends base_template %}
+
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir Archivo</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'login/login.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="upload-button">Seleccionar Archivo</button>
+            <img src="logo.png" alt="Robert Hooke Logo" class="logo">
+        </div>
+        <div class="preview">
+            <p>Vista previa</p>
+        </div>
+        <div class="footer">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" hidden>
+                <button type="submit" class="form-button">Agregar</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        document.querySelector('.upload-button').addEventListener('click', () => {
+            document.getElementById('excel_file').click();
+        });
+    </script>
+</body>
+</html>
+{% endblock %}

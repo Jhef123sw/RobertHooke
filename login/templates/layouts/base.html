@@ -1,0 +1,64 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robert Hooke</title>
+    <link rel="stylesheet" href="{% static 'login/base.css' %}">
+</head>
+<body>
+    <!-- Botón hamburguesa -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+
+    <div class="layout">
+        <!-- Menú lateral -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo-section">
+                <img src="{% static 'img/usuario.png' %}" alt="Perfil">
+                <img src="{% static 'img/logo.png' %}" alt="Logo">
+            </div>
+            <div class="menu">
+                <a href="{% url 'lista_estudiantes' %}" class="menu-link">
+                    <button class="menu-button">Estudiantes</button>
+                </a>
+                <a href="{% url 'cargar_excel' %}" class="menu-link">
+                    <button class="menu-button">Cargar estudiantes excel</button>
+                </a>
+                <a href="{% url 'registrar_estudiante' %}" class="menu-link">
+                    <button class="menu-button">Registrar un alumno</button>
+                </a>
+                <a href="{% url 'subir_reporte' %}" class="menu-link">
+                    <button class="menu-button">Cargar excel notas</button>
+                </a>
+                <a href="{% url 'subir_asistencia' %}" class="menu-link">
+                    <button class="menu-button">Cargar excel asistencias</button>
+                </a>
+                <a href="{% url 'seleccionar_fecha_generacion' %}" class="menu-link">
+                    <button class="menu-button">Generar imágenes para web</button>
+                </a>
+                <a href="{% url 'salir' %}" class="menu-link">
+                    <button class="menu-button">Cerrar sesión</button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="main-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<div style="background-color: white; padding: 30px; border-radius: 15px;">
+    <h2>📊 Generar gráficos por curso</h2>
+    <form method="post">
+        {% csrf_token %}
+        <label for="fecha">Fecha:</label>
+        <select name="fecha" id="fecha" required>
+            <option value="" disabled selected>Seleccione una fecha</option>
+            {% for fecha in fechas %}
+                <option value="{{ fecha|date:'Y-m-d' }}">{{ fecha }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <button type="submit" class="btn btn-success">Generar Gráficos</button>
+    </form>
+    <!-- seleccionar_fecha_reporte.html -->
+    <form method="post" action="{% url 'generar_graficos_todos' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">Generar gráficos para todos los estudiantes</button>
+    </form>
+</div>
+{% endblock %}

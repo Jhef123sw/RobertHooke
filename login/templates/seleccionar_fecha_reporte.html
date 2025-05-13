@@ -1,0 +1,54 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/generar_imagenes.css' %}">
+
+{% if messages %}
+    <div>
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Contenedor de los dos formularios en fila -->
+<div class="contenedor-superior">
+    <div class="formulario formulario_img_reporte">
+        <h2>Generar reportes en imágenes</h2>
+        <p>Con este botón se generan los reportes para los estudiantes de todos sus simulacros</p>
+        <form method="get" action="{% url 'generar_todo_reporte' %}">
+            <button type="submit" class="btn-generar">Generar reportes</button>
+        </form>
+    </div>
+
+    <div class="formulario formulario_img_asistencia">
+        <h2>Generar reportes de asistencias</h2>
+        <p>Con este botón se generan los reportes para los estudiantes de todos sus asistencias</p>
+        <form method="get" action="{% url 'generar_asistencia_todos' %}">
+            <button type="submit" class="btn-generar">Generar reportes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Formulario inferior centrado -->
+<div class="formulario formulario_img_web">
+    <h2>Generar imágenes para la web</h2>
+    <p>Botón para generar gráficos mostrados la página web, hacerlo solamente después de subir data de un simulacro y para la fecha de dicho simulacro.</p>
+    <form method="post">
+        {% csrf_token %}
+        <label for="fecha">Fecha:</label>
+        <select name="fecha" id="fecha" required>
+            <option value="" disabled selected>Seleccione una fecha</option>
+            {% for fecha in fechas %}
+                <option value="{{ fecha|date:'Y-m-d' }}">{{ fecha }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <button type="submit" class="btn-generar">Generar Imágenes</button>
+    </form>
+</div>
+<script src="{% static 'js/scripts.js' %}"></script> 
+{% endblock %}

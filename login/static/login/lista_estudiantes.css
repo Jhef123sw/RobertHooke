@@ -1,0 +1,50 @@
+.form-buscar {
+    max-width: 300px;
+    margin-bottom: 10px;
+    margin-left: 30%;
+}
+
+.contenedor-graficos {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.btn-eliminar {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    margin-top: 0px;
+}
+
+.btn-eliminar:hover {
+    background-color: #218838;
+}
+
+.table .btn {
+    margin-right: 5px;
+    margin-bottom: 3px;
+    font-size: 0.8rem;
+}
+
+.acciones-superiores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin: 20px 0;
+}
+
+@media (min-width: 768px) {
+    .acciones-superiores {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 767px) {
+    .form-buscar {
+        width: 100%;
+        margin-right: 300px;
+    }
+}

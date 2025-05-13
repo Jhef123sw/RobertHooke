@@ -1,0 +1,91 @@
+{% extends base_template %}
+
+{% block content %}
+<html>
+    <style>
+        .main-content {
+            flex-grow: 1;
+            background-color: #A42759; /* Rojo */
+            border-radius: 0 20px 20px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Contenedor de observaciones */
+        .observaciones-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px; /* Ajusta el ancho del contenedor */
+        }
+
+        /* Título centrado */
+        .titulo {
+            font-size: 24px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Caja de observaciones */
+        .observaciones-scroll {
+            width: 100%;
+            max-width: 600px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+        }
+    
+        .p{
+            color: black;
+        }
+        .observacion-card {
+            width: 90%;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #007bff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .observacion-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <div class="main-content">
+        <div class="observaciones-wrapper">
+            <h2 class="titulo">Observaciones de Exámenes</h2>
+            <div class="observaciones-scroll">
+                <div class="observaciones-container">
+                    {% for obs in observaciones %}
+                        <div class="observacion-card">
+                            <strong style="color: black;">Fecha: {{ obs.fecha }}</strong><br>
+                            <p style="color: black;">{{ obs.texto }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</html>
+{% endblock %}

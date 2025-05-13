@@ -1,0 +1,114 @@
+/* Estilo general */
+.formulario {
+    background-color: #A42759;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px;
+    color: white;
+    box-sizing: border-box;
+}
+
+/* Estilos para los mensajes flotantes */
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: fadeOut 5s forwards;
+    max-width: 300px;
+    width: 90%;
+}
+
+.alert-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+
+.alert-error {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+
+/* Animación para desvanecer el mensaje */
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+
+
+/* Títulos y textos */
+.formulario h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.formulario p {
+    font-size: 0.95rem;
+    margin-top: -10px;
+}
+
+/* Botones e inputs */
+.formulario select,
+.formulario button {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: none;
+}
+
+.btn-generar {
+    background-color: #28a745;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-generar:hover {
+    background-color: #218838;
+}
+
+/* Contenedor superior con dos columnas */
+.contenedor-superior {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Cada formulario superior */
+.formulario_img_reporte,
+.formulario_img_asistencia {
+    flex: 1 1 45%;
+    max-width: 435px;
+}
+
+/* Formulario inferior centrado */
+.formulario_img_web {
+    max-width: 600px;
+    margin: 20px auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .contenedor-superior {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .formulario_img_reporte,
+    .formulario_img_asistencia {
+        width: 90%;
+    }
+}

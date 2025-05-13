@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <!-- Cargar archivo CSS estático -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'login/login.css' %}">
+</head>
+<body>
+    <!-- Mostrar mensajes flotantes -->
+    {% if messages %}
+        <div>
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="container">
+        <div class="login-section">
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Iniciar Sesión</button>
+            </form>
+        </div>
+        <div class="info-section">
+            <p class="info-text">
+                El acceso al intranet se logra a través de credenciales proporcionadas por la administración, compuestas por un correo electrónico y una contraseña única. Esta plataforma en línea ofrece a alumnos y padres de familia la posibilidad de visualizar el progreso académico, incluyendo calificaciones y el seguimiento del rendimiento estudiantil.
+            </p>
+        </div>
+    </div>
+    
+
+    <!-- Cargar archivo JavaScript estático -->
+    <script src="{% static 'js/scripts.js' %}"></script>
+</body>
+</html>
+

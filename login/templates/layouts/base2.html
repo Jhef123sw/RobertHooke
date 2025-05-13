@@ -1,0 +1,55 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robert Hooke</title>
+    <link rel="stylesheet" href="{% static 'login/base.css' %}">
+</head>
+<body>
+    <!-- Botón hamburguesa -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <div></div>
+        <div></div>
+        <div></div>
+    </button>
+
+    <div class="layout">
+        <!-- Menú lateral -->
+        <div class="sidebar" id="sidebar">
+            <div class="logo-section">
+                <img src="{% static 'img/usuario.png' %}" alt="Perfil">
+                <img src="{% static 'img/logo.png' %}" alt="Logo">
+            </div>
+            <div class="menu">
+                <a href="{% url 'home' %}" class="menu-link">
+                    <button class="menu-button">Último simulacro</button>
+                </a>
+                <a  href="{% url 'reportes_estudiante' %}" class="menu-link">
+                    <button class="menu-button">Todos mis simulacros</button>
+                </a>
+                <a href="{% url 'observaciones' %}" class="menu-link">
+                    <button class="menu-button">Observaciones</button>
+                </a>
+                <a href="{% url 'salir' %}" class="menu-link">
+                    <button class="menu-button">Cerrar sesión</button>
+                </a>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="main-content">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+    </script>
+</body>
+</html>

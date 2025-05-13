@@ -1,0 +1,34 @@
+{% extends base_template %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'css/crear_estudiante.css' %}">
+    <title>Subir Reporte</title>
+</head>
+<body>
+    <div class="main-content">
+        <h1>Subir Reporte desde Excel</h1>
+        <p>Sube el Excel generado por el otro sistema. <strong>NOTA:</strong> Asegúrate de agregar la columna de observación.</p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Subir Archivo</button>
+        </form>
+
+        {% if messages %}
+            <div>
+                {% for message in messages %}
+                    <p{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+<script src="{% static 'js/scripts.js' %}"></script> 
+</html>
+{% endblock %}

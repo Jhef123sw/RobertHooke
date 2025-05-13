@@ -1,0 +1,13 @@
+{# templates/layouts/base_intermedia.html #}
+
+{# Extender una base predeterminada #}
+{% extends 'layouts/base.html' %}
+
+{# Bloque para que las plantillas hijas puedan decidir qué base usar #}
+{% block base_seleccionada %}
+    {% if user.tipo_estudiante == 'administrador' %}
+        {% extends 'layouts/base.html' %}  <!-- Base para administradores -->
+    {% else %}
+        {% extends 'layouts/base2.html' %}  <!-- Base para regulares -->
+    {% endif %}
+{% endblock %}
