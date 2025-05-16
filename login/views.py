@@ -1672,15 +1672,10 @@ def home(request):
 def inicio(request):
     return render(request, 'registration/login.html');
 
-@login_required
+
 def salir(request):
-    estudiante = request.user
-    if estudiante.tipo_estudiante == "administrador":  
-        base_template = "layouts/base.html"  # Plantilla para administrador
-    else:
-        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
     logout(request)
-    return render(request, "home.html", {"base_template": base_template})
+    return redirect('home')
 
 
 def user_login(request):
