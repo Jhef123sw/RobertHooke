@@ -25,7 +25,7 @@ class Reporte(models.Model):
         (30, 'Semillero'),
         (90, 'Pre'),
     ]
-    nivel = models.CharField(max_length=20, choices=NIVEL_CHOICES, default=90)
+    nivel = models.IntegerField(choices=NIVEL_CHOICES, default=90)
     IDReporte = models.AutoField(primary_key=True)
     KK_usuario = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='reportes')
     Rv_1 = models.IntegerField()
