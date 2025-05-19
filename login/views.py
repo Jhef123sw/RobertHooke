@@ -240,7 +240,7 @@ def generar_todo_reporte(request):
         }
 
         for estudiante in estudiantes:
-            reportes = estudiante.reportes.all().order_by('fecha_de_examen')
+            reportes = estudiante.reportes.all().order_by('-fecha_de_examen')[:8][::-1]
             if not reportes.exists():
                 continue
 
@@ -505,7 +505,7 @@ def crear_grafico_estudiante_curso(estudiante, nombre_curso, datos):
     df['blanco'] = df['total'] - df['correctas'] - df['incorrectas']
 
     fechas = df['Fecha Simulacro'].unique()
-    cols = 3
+    cols = 4
     rows = math.ceil(len(fechas) / cols)
 
     fig, axes = plt.subplots(rows, cols, figsize=(20, 5 * rows))
