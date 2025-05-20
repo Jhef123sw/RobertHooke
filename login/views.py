@@ -240,9 +240,14 @@ def generar_todo_reporte(request):
         }
 
         for estudiante in estudiantes:
-            reportes = estudiante.reportes.all().order_by('-fecha_de_examen')[:8][::-1]
-            if not reportes.exists():
+            reportes_qs = estudiante.reportes.all().order_by('-fecha_de_examen')
+
+            if not reportes_qs.exists():
                 continue
+
+            # Tomar los últimos 8 y ordenarlos cronológicamente
+            reportes = list(reportes_qs[:8][::-1])
+
 
             ruta_carpeta = f'media/{estudiante.usuario}_2025/imagenes_reporte/'
             os.makedirs(ruta_carpeta, exist_ok=True)
@@ -251,8 +256,8 @@ def generar_todo_reporte(request):
             
 
             # 1. Recolectar datos por curso según nivel
-            nivel = reportes.first().nivel  # Todos los reportes del estudiante tienen mismo nivel
-            if nivel == "30":
+            nivel = reportes[0].nivel # Todos los reportes del estudiante tienen mismo nivel
+            if nivel == 30:
                 cursos = cursos_semillero
                 preguntas_por_curso = preguntas_semillero
             else:
