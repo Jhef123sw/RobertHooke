@@ -4,12 +4,16 @@ matplotlib.use('Agg')  # Forzar backend sin GUI
 import matplotlib.pyplot as plt
 import base64
 import os
+import openpyxl
 import io
+from django.urls import reverse
+from openpyxl.utils import get_column_letter
 from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse, HttpResponseBadRequest, FileResponse, Http404
+from django.http import HttpResponse, HttpResponseBadRequest, FileResponse, Http404, JsonResponse
+from django.template.loader import render_to_string
 from django.contrib import messages
 from datetime import datetime
 import pandas as pd
@@ -17,10 +21,11 @@ import shutil
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from .models import Estudiante, Reporte, Asistencia
-from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte
+from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm
 from .backends import EstudianteBackend
-from .decorators import estudiante_tipo_requerido
+from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
 from django.db.models import Q
 import os
@@ -33,6 +38,54 @@ from .models import Reporte, Estudiante
 from datetime import datetime
 
 #Descargas
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+@require_POST
+@csrf_exempt
+def descargar_estudiantes_excel(request):
+    ids = request.POST.getlist('estudiantes')
+    if not ids:
+        return HttpResponse("No se seleccionaron estudiantes", status=400)
+
+    estudiantes = Estudiante.objects.filter(pk__in=ids)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Estudiantes"
+
+    # Cabeceras
+    headers = ['Codigo', 'Nombre', 'Facebook', 'Instagram', 'Celular', 'Colegio', 'Grado', 'Ciudad', 'Carrera']
+    ws.append(headers)
+
+    # Datos
+    for est in estudiantes:
+        ws.append([
+            est.usuario,
+            est.nombre,
+            est.facebook,
+            est.instagram,
+            est.numCelular,
+            est.colegio,
+            est.grado,
+            est.ciudad,
+            est.carrera,
+        ])
+
+    # Ajustar ancho de columnas
+    for i, col in enumerate(ws.columns, 1):
+        max_length = max((len(str(cell.value)) for cell in col), default=0)
+        ws.column_dimensions[get_column_letter(i)].width = max_length + 2
+
+    # Respuesta HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=estudiantes.xlsx'
+    wb.save(response)
+    return response
+
+
 @login_required
 def descargar_reporte(request):
     usuario_actual = request.user
@@ -40,53 +93,68 @@ def descargar_reporte(request):
         ruta_descarga = f"media/reportes/simulacros/{usuario_actual.usuario}_reporte_simulacro.png"
         if not os.path.exists(ruta_descarga):
             raise Http404("El reporte no se ha generado todavía, por favor ponte en contacto con la administración.")
-        
-        
         return FileResponse(open(ruta_descarga, 'rb'), as_attachment=True, filename=os.path.basename(ruta_descarga))
 
     except Exception as e:
         print(f"Error al descargar el reporte: {e}")
-        raise Http404("No se pudo descargar el reporte.")
-    
+        raise Http404("No se pudo descargar el reporte : {e}")
+
+
+@require_POST
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def descargar_reportes_zip(request):
-    # Ruta a la carpeta de simulacros
+    # Obtener los IDs enviados por el formulario
+    ids = request.POST.getlist('estudiantes')
+    ids = [id for id in ids if id.isdigit()]
+    
+    if not ids:
+        messages.warning(request, "No seleccionaste ningún estudiante válido.")
+        return redirect('lista_estudiantes')
+
+    estudiantes = Estudiante.objects.filter(ID_Estudiante__in=ids)
     carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "simulacros")
     
     if not os.path.exists(carpeta):
         raise Http404("La carpeta de reportes no existe")
 
-    # Creamos el archivo ZIP en memoria
+    # Crear ZIP en memoria
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for nombre_archivo in os.listdir(carpeta):
+        for estudiante in estudiantes:
+            nombre_archivo = f"{estudiante.usuario}_reporte_simulacro.png"
             ruta_archivo = os.path.join(carpeta, nombre_archivo)
             if os.path.isfile(ruta_archivo):
                 zip_file.write(ruta_archivo, arcname=nombre_archivo)
 
     buffer.seek(0)
-
     response = HttpResponse(buffer, content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename="reportes_simulacros.zip"'
+    response['Content-Disposition'] = 'attachment; filename="reportes_seleccionados.zip"'
     return response
 
+
+@require_POST
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def descargar_reportes_asistencia_zip(request):
-    # Ruta a la carpeta de asistenicias
+    ids = request.POST.getlist('estudiantes')
+    ids = [id for id in ids if id.isdigit()]
+
+    if not ids:
+        raise Http404("No se seleccionaron estudiantes válidos.")
+
+    estudiantes = Estudiante.objects.filter(ID_Estudiante__in=ids)
+
     carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "asistencias")
-    
     if not os.path.exists(carpeta):
         raise Http404("La carpeta de reportes no existe, comuníquese con soporte")
 
-    # Creamos el archivo ZIP en memoria
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for nombre_archivo in os.listdir(carpeta):
-            ruta_archivo = os.path.join(carpeta, nombre_archivo)
-            if os.path.isfile(ruta_archivo):
-                zip_file.write(ruta_archivo, arcname=nombre_archivo)
+        for estudiante in estudiantes:
+            archivo = os.path.join(carpeta, f"{estudiante.usuario}.png")
+            if os.path.isfile(archivo):
+                zip_file.write(archivo, arcname=os.path.basename(archivo))
 
     buffer.seek(0)
 
@@ -107,7 +175,7 @@ def generar_reporte_asistencia_todos(request):
         return redirect('seleccionar_fecha_generacion')
     except Exception as e:
         print(f"Error al generar todo el reporte: {e}")
-        raise Http404("Ocurrió un error al generar los reportes.")
+        raise Http404("Ocurrió un error al generar los reportes.{e}")
 
 
 
@@ -226,7 +294,7 @@ preguntas_semillero = {
 @estudiante_tipo_requerido(['administrador'])
 def generar_todo_reporte(request):
     try:
-        estudiantes = Estudiante.objects.all()
+        estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
         ruta_guardar = 'media/reportes/simulacros'
         plantilla_path = "login/static/img/plantilla-notas.png"
 
@@ -349,9 +417,7 @@ def generar_todo_reporte(request):
 
     except Exception as e:
         print(f"Error al generar todo el reporte: {e}")
-        raise Http404("Ocurrió un error al generar los reportes.")
-
-
+        raise Http404("Ocurrió un error al generar los reportes. {e}")
 
 
 
@@ -411,14 +477,10 @@ def crear_grafico_estudiante_curso(estudiante, nombre_curso, datos):
 
 
 
-
-
-
-
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_graficos_todos_estudiantes(request):
-    estudiantes = Estudiante.objects.all()
+    estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
 
     for estudiante in estudiantes:
         reportes = estudiante.reportes.all().order_by('fecha_de_examen')
@@ -475,7 +537,74 @@ def generar_imagenes_reportes_por_fecha(request, fecha):
 
     ruta_base = 'media'
 
-    for estudiante in Estudiante.objects.all():
+    for estudiante in Estudiante.objects.filter(reporte_actualizado=True):
+        reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj)
+
+        for reporte in reportes:
+            datos = reporte.obtener_datos()
+            nivel = reporte.nivel  # 30 para semillero, 40 para pre u otro valor
+
+            preguntas_por_curso = preguntas_semillero if nivel == 30 else preguntas_pre
+
+            carpeta_usuario = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
+            os.makedirs(carpeta_usuario, exist_ok=True)
+
+            for curso, valores in datos.items():
+                correctas, incorrectas = valores
+                total_preguntas = preguntas_por_curso.get(curso, 10)
+                en_blanco = total_preguntas - (correctas + incorrectas)
+
+                etiquetas = ["Correctas", "Incorrectas", "En blanco"]
+                valores_barras = [correctas, incorrectas, en_blanco]
+                colores = ["green", "red", "gray"]
+
+                fig, ax = plt.subplots(figsize=(8, 4))
+                barras = ax.bar(etiquetas, valores_barras, color=colores)
+
+                # Mostrar los valores encima de las barras
+                for barra in barras:
+                    altura = barra.get_height()
+                    ax.annotate(f'{altura}',
+                                xy=(barra.get_x() + barra.get_width() / 2, altura),
+                                xytext=(0, 3),
+                                textcoords="offset points",
+                                ha='center', va='bottom',
+                                fontsize=10)
+
+                ax.set_title(f"{curso} - {reporte.fecha_de_examen}")
+
+                # Eliminar bordes y márgenes
+                ax.set_title("")
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_visible(False)
+                ax.spines['bottom'].set_visible(False)
+                ax.tick_params(left=False, bottom=False)
+                ax.set_yticks([])
+
+                plt.tight_layout()
+
+                nombre_archivo = f"{curso}_{estudiante.usuario}_{reporte.fecha_de_examen}.png".replace(" ", "_")
+                ruta_archivo = os.path.join(carpeta_usuario, nombre_archivo)
+
+                plt.savefig(ruta_archivo, format='png', bbox_inches='tight', facecolor='white')
+                plt.close(fig)
+
+    return redirect('seleccionar_fecha_generacion')
+
+
+
+def generar_imagenes_reportes_por_fecha_respaldo(request, fecha):
+    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+    cursos = [
+        "Razonamiento Verbal", "Razonamiento Matemático", "Aritmética", "Álgebra",
+        "Geometría", "Trigonometría", "Física", "Química", "Biología", "Lenguaje",
+        "Literatura", "Historia", "Geografía", "Filosofía", "Psicología", "Economía"
+    ]
+
+    ruta_base = 'media'
+
+    for estudiante in Estudiante.objects.filter(reporte_actualizado = True):
         reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj)
 
         for reporte in reportes:
@@ -513,7 +642,7 @@ def generar_imagenes_reportes_por_fecha(request, fecha):
 def generar_reporte(request):
     usuario_actual = request.user
     try:
-        estudiantes = Estudiante.objects.all()
+        estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
         ruta_guardar = f'media/reportes/simulacros'
         plantilla_path = os.path.join(settings.MEDIA_ROOT, "login/static/img/plantilla-notas.png")
 
@@ -563,13 +692,13 @@ def generar_reporte(request):
 
     except Exception as e:
         print(f"Error al generar el reporte: {e}")
-        raise Http404("No se pudo generar el reporte")
+        raise Http404("No se pudo generar el reporte{e}")
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_reportes_simulacro_todos(request):
     try:
-        estudiantes = Estudiante.objects.all()
+        estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
         plantilla_path = os.path.join(settings.BASE_DIR, "login/static/img/plantilla-notas.png")
         fuente_path = os.path.join(settings.BASE_DIR, "static/fonts/arial.ttf")  # Asegúrate que exista
 
@@ -627,7 +756,7 @@ def generar_reportes_simulacro_todos(request):
 
     except Exception as e:
         print(f"Error al generar reportes: {e}")
-        raise Http404("Error al generar los reportes.")
+        raise Http404("Error al generar los reportes.{e}")
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -687,7 +816,7 @@ def generar_imagenes_reportes(request):
     graficos = []
     fechas = set()
 
-    for estudiante in Estudiante.objects.all():
+    for estudiante in Estudiante.objects.filter(reporte_actulizado = True):
         reportes = Reporte.objects.filter(KK_usuario=estudiante).order_by('-fecha_de_examen')
 
         for reporte in reportes:
@@ -745,6 +874,7 @@ def generar_imagenes_reportes(request):
 
 
 @login_required
+@datos_actualizados_requerido('actualizar_datos')
 def reportes_estudiante(request):
     usuario_actual = request.user
 
@@ -789,6 +919,7 @@ def reportes_estudiante(request):
     })
 
 @login_required
+@datos_actualizados_requerido('actualizar_datos')
 def reportes_observaciones(request):
     usuario_actual = request.user
     if usuario_actual.tipo_estudiante == "administrador":  
@@ -806,6 +937,7 @@ def reportes_observaciones(request):
     return render(request, 'observaciones.html', {'observaciones': observaciones, "base_template": base_template})
 
 @login_required
+@datos_actualizados_requerido('actualizar_datos')
 def reportes_puesto_puntaje(request):
     usuario_actual = request.user
     if usuario_actual.tipo_estudiante == "administrador":  
@@ -822,14 +954,25 @@ def reportes_puesto_puntaje(request):
     def generar_grafico(x, y, titulo, xlabel, ylabel, color, invertir_y = False):
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.plot(x, y, marker='o', linestyle='-', color=color)
-        ax.set_title(titulo)
+        #ax.set_title(titulo)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.grid(True)
 
         if invertir_y:
             ax.invert_yaxis()
-
+        #    max_y = max(y)
+        #    ax.set_ylim(top=max_y - 7)
+        #else:
+        #    max_y = max(y)
+        #    ax.set_ylim(top=max_y + 0.1)
+        for i, valor in enumerate(y):
+            ax.annotate(str(valor), (x[i], y[i]),
+                        textcoords="offset points",
+                        xytext=(0, 8),
+                        ha='center',
+                        fontsize=15,
+                        color=color)
         buffer = BytesIO()
         plt.savefig(buffer, format='png')
         buffer.seek(0)
@@ -856,6 +999,7 @@ def reportes_puesto_puntaje(request):
 
 
 #Administración de estudiantes
+
 @require_POST
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -868,12 +1012,21 @@ def eliminar_estudiantes_masivo(request):
         
         for estudiante in estudiantes:
             # Ruta a la carpeta del estudiante
-            carpeta_estudiante = os.path.join('media', f"{estudiante.usuario}_2025")
+            carpeta_estudiante = os.path.join(settings.MEDIA_ROOT, f"{estudiante.usuario}_2025")
+            
+            reporte_estudiante = os.path.join(settings.MEDIA_ROOT, f"reportes/simulacros/{estudiante.usuario}_reporte_simulacro.png")
+
+            asistencia_estudiante = os.path.join(settings.MEDIA_ROOT, f"reportes/asistencias/{estudiante.usuario}.png")
 
             # Eliminar carpeta si existe
             if os.path.exists(carpeta_estudiante) and os.path.isdir(carpeta_estudiante):
                 shutil.rmtree(carpeta_estudiante)
 
+            if os.path.exists(reporte_estudiante) and os.path.isfile(reporte_estudiante):
+                os.remove(reporte_estudiante)
+            
+            if os.path.exists(asistencia_estudiante) and os.path.isfile(asistencia_estudiante):
+                os.remove(asistencia_estudiante)
         # Eliminar los estudiantes después de borrar las carpetas
         estudiantes.delete()
         
@@ -924,9 +1077,38 @@ def agregar_observacion(request, estudiante_id):
         'reporte_seleccionado': reportes.filter(fecha_de_examen=fecha_obj).first() if fecha_obj else None
     })
 
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def lista_estudiantes(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    
+    query = request.GET.get('q', '').strip()
+
+    if query:
+        estudiantes = Estudiante.objects.filter(
+            Q(nombre__icontains=query) | Q(usuario__icontains=query),
+            tipo_estudiante="estudiante"
+        )
+    else:
+        estudiantes = Estudiante.objects.filter(tipo_estudiante="estudiante")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string("fragmentos/tabla_estudiantes.html", {"estudiantes": estudiantes})
+        return JsonResponse({"html": html})
+
+    return render(request, 'lista_estudiantes.html', {
+        'estudiantes': estudiantes,
+        'query': query,
+        "base_template": base_template
+    })
+
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def lista_estudiantes_respaldo(request):
     usuario_actual = request.user
 
     # Definir la plantilla según el tipo de usuario
@@ -1048,10 +1230,10 @@ def subir_reporte(request):
             try:
                 df = pd.read_excel(archivo_excel)
 
-                columnas_semi = ['Alumno', 'Fecha Simulacro', 'Puesto', 'Rv_1', 'Rv_2', 'Rm_1', 'Rm_2', 'Ar_1', 'Ar_2', 'Al_1', 'Al_2', 'Lit_1', 'Lit_2', 'Observacion'
+                columnas_semi = ['Alumno', 'Fecha Simulacro', 'Puesto', 'Rv_1', 'Rv_2', 'Rm_1', 'Rm_2', 'Ar_1', 'Ar_2', 'Al_1', 'Al_2', 'Lit_1', 'Lit_2'
                 ]
                 columnas_pre = [
-                    'Alumno', 'Fecha Simulacro', 'Puesto', 'Rv_1', 'Rv_2', 'Rm_1', 'Rm_2', 'Ar_1', 'Ar_2', 'Al_1', 'Al_2','Ge_1', 'Ge_2', 'Tr_1', 'Tr_2', 'Fi_1', 'Fi_2', 'Qu_1', 'Qu_2', 'Bi_1', 'Bi_2','Le_1', 'Le_2', 'Lit_1', 'Lit_2', 'Hi_1', 'Hi_2', 'Gf_1', 'Gf_2', 'Fil_1', 'Fil_2','Psi_1', 'Psi_2', 'Ec_1', 'Ec_2', 'Observacion'
+                    'Alumno', 'Fecha Simulacro', 'Puesto', 'Rv_1', 'Rv_2', 'Rm_1', 'Rm_2', 'Ar_1', 'Ar_2', 'Al_1', 'Al_2','Ge_1', 'Ge_2', 'Tr_1', 'Tr_2', 'Fi_1', 'Fi_2', 'Qu_1', 'Qu_2', 'Bi_1', 'Bi_2','Le_1', 'Le_2', 'Lit_1', 'Lit_2', 'Hi_1', 'Hi_2', 'Gf_1', 'Gf_2', 'Fil_1', 'Fil_2','Psi_1', 'Psi_2', 'Ec_1', 'Ec_2'
                 ]
 
                 # Validar columnas según nivel
@@ -1065,14 +1247,14 @@ def subir_reporte(request):
                 for _, fila in df.iterrows():
                     try:
                         estudiante = Estudiante.objects.get(usuario=fila['Alumno'])
-
+                        estudiante.reporte_actualizado = True
+                        estudiante.save()
                         # Campos comunes
                         datos = {
                             "KK_usuario": estudiante,
                             "fecha_de_examen": fila.get('Fecha Simulacro'),
                             "puesto": fila.get('Puesto'),
                             "nivel": nivel,
-                            "Observacion": fila.get('Observacion'),
                             "Rv_1": fila.get("Rv_1", 0),
                             "Rv_2": fila.get("Rv_2", 0),
                             "Rm_1": fila.get("Rm_1", 0),
@@ -1128,8 +1310,6 @@ def subir_reporte(request):
         "base_template": base_template,
         "form": form
     })
-
-
 
 
 
@@ -1199,10 +1379,6 @@ def crearAlumno(request):
     return render(request, 'crear_alumno.html')
 
 
-
-
-
-
 def prueba(request):
     usuario_actual = request.user
     # Definir la plantilla según el tipo de usuario
@@ -1210,33 +1386,6 @@ def prueba(request):
     return render(request, 'prueba.html', {
         'base_template': base_template,
     })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def logout_view(request):
-
-    estudiante = request.user
-    if estudiante.tipo_estudiante == "administrador":  
-        base_template = "layouts/base.html"  # Plantilla para administrador
-    else:
-        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
-    logout(request)
-
-    return render(request, "home.html", {"base_template": base_template})
-
-
 
 
 def login_view(request):
@@ -1254,13 +1403,84 @@ def login_view(request):
             if estudiante is not None:
                 login(request, estudiante, backend='tu_app.backends.EstudianteBackend')
                 messages.success(request, 'Inicio de sesión exitoso.')
-                return redirect('nombre_de_la_vista_protegida')
+
+                # Redirigir según tipo de estudiante
+                if estudiante.tipo_estudiante == "estudiante":
+                    return redirect('home')
+                elif estudiante.tipo_estudiante == "administrador":
+                    return redirect('lista_estudiantes')
+                else:
+                    return redirect('login')  # Por si acaso
+
+            else:
+                messages.error(request, 'Usuario o contraseña incorrectos.')
+    else:
+        form = LoginForm()
+    
+    return render(request, 'registration/login.html', {'form': form})
+
+
+
+def logout_view_respaldo(request):
+
+    estudiante = request.user
+    if estudiante.tipo_estudiante == "administrador":  
+        base_template = "layouts/base.html"  # Plantilla para administrador
+    else:
+        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    logout(request)
+
+    return render(request, "home.html", {"base_template": base_template})
+
+
+def login_view(request):
+    user = request.user
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            usuario = form.cleaned_data['usuario']
+            contraseña = form.cleaned_data['contraseña']
+            
+            # Autenticar usando el backend personalizado
+            backend = EstudianteBackend()
+            estudiante = backend.authenticate(request, username=usuario, password=contraseña)
+            
+            if estudiante is not None:
+                login(request, estudiante, backend='tu_app.backends.EstudianteBackend')
+                messages.success(request, 'Inicio de sesión exitoso.')
+                return redirect('estudiantes')
             else:
                 messages.error(request, 'Usuario o contraseña incorrectos.')
     else:
         form = LoginForm()
     
     return render(request, 'registration/login.html', {'form': form}, {'user': user})
+
+@login_required
+def actualizar_datos(request):
+    estudiante = request.user
+    if estudiante.tipo_estudiante == "administrador":  
+        base_template = "layouts/base.html"
+    else:
+        base_template = "layouts/base2.html"
+    
+    estudiante = get_object_or_404(Estudiante, pk=estudiante.ID_Estudiante)
+
+    if request.method == 'POST':
+        form = ActualizarDatosForm(request.POST, instance=estudiante)
+        if form.is_valid():
+            estudiante.actualizado = "actualizado"
+            form.save()
+            return redirect(reverse('actualizar_datos') + '?exito=1')
+    else:
+        form = ActualizarDatosForm(instance=estudiante)
+    
+    return render(request, 'actualizar_datos.html', {
+        'base_template': base_template,
+        'form': form,
+        'exito': request.GET.get('exito') == '1'
+    })
+
 
 
 @login_required
@@ -1502,7 +1722,7 @@ def generar_todo_reporte_respaldo(request):
 
     except Exception as e:
         print(f"Error al generar todo el reporte: {e}")
-        raise Http404("Ocurrió un error al generar los reportes.")
+        raise Http404("Ocurrió un error al generar los reportes.{e}")
 
 
 
@@ -1723,3 +1943,49 @@ def subir_reporte_respaldo(request):
         form = CargarExcelForm()
     
     return render(request, "subir_reporte.html", {"base_template": base_template, "form": form})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def descargar_reportes_zip_respaldo(request):
+    # Ruta a la carpeta de simulacros
+    carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "simulacros")
+    
+    if not os.path.exists(carpeta):
+        raise Http404("La carpeta de reportes no existe")
+
+    # Creamos el archivo ZIP en memoria
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for nombre_archivo in os.listdir(carpeta):
+            ruta_archivo = os.path.join(carpeta, nombre_archivo)
+            if os.path.isfile(ruta_archivo):
+                zip_file.write(ruta_archivo, arcname=nombre_archivo)
+
+    buffer.seek(0)
+
+    response = HttpResponse(buffer, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="reportes_simulacros.zip"'
+    return response
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def descargar_reportes_asistencia_zip_respaldo(request):
+    # Ruta a la carpeta de asistenicias
+    carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "asistencias")
+    
+    if not os.path.exists(carpeta):
+        raise Http404("La carpeta de reportes no existe, comuníquese con soporte")
+
+    # Creamos el archivo ZIP en memoria
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for nombre_archivo in os.listdir(carpeta):
+            ruta_archivo = os.path.join(carpeta, nombre_archivo)
+            if os.path.isfile(ruta_archivo):
+                zip_file.write(ruta_archivo, arcname=nombre_archivo)
+
+    buffer.seek(0)
+
+    response = HttpResponse(buffer, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="reportes_asistencias.zip"'
+    return response

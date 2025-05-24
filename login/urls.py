@@ -1,13 +1,15 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel
 
 urlpatterns = [
     path('', reportes_puesto_puntaje, name='home'),
+    path('actualizar_datos/', actualizar_datos, name='actualizar_datos'),
     path('cargar_asistencias/', cargar_asistencias, name='subir_asistencia'),
     path('cargar-excel/', cargar_excel, name='cargar_excel'),
     path('descargar-reporte/', descargar_reporte, name='descargar_reporte'),
     path('descargar-reportes/', descargar_reportes_zip, name='descargar_reportes_zip'),
     path('descargar-asistencias/', descargar_reportes_asistencia_zip, name='descargar_reportes_asistencias_zip'),
+    path('descargar_estudiantes_excel/', descargar_estudiantes_excel, name='descargar_estudiantes_excel'),
     path('estudiantes/', lista_estudiantes, name='lista_estudiantes'),
     path('estudiantes/eliminar-masivo/', eliminar_estudiantes_masivo, name='eliminar_estudiantes_masivo'),
     path('estudiantes/<int:estudiante_id>/observaciones/', agregar_observacion, name='agregar_observacion'),

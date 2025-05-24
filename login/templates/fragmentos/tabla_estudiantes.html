@@ -1,0 +1,17 @@
+{% for estudiante in estudiantes %}
+<tr>
+    <td>
+        <input type="checkbox" name="estudiantes" value="{{ estudiante.ID_Estudiante|default_if_none:'' }}" class="estudiante-checkbox">
+    </td>
+    <td>{{ estudiante.nombre }}</td>
+    <td>{{ estudiante.usuario }}</td>
+    <td>{{ estudiante.get_tipo_estudiante_display }}</td>
+    <td>
+        <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-sm btn-primary">Editar</a>
+        <a href="{% url 'eliminar_estudiante' estudiante.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+        <a href="{% url 'agregar_observacion' estudiante.pk %}" class="btn btn-sm btn-warning">Agregar Observación</a>
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="5" class="text-center">No hay estudiantes registrados.</td></tr>
+{% endfor %}

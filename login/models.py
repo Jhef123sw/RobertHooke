@@ -4,7 +4,20 @@ class Estudiante(models.Model):
     PERMISOS_USUARIO = [
         ('estudiante', 'Estudiante'), ('administrador', 'Administrador'),
     ]
+    DATOS_ACTUALIZADOS = [
+    ('actualizado', 'Actualizado'),
+    ('desactualizado', 'Desactualizado')
+    ]
+    GRADO_ESTUDIANTE = [
+        (1, '1° de Secundaria'),
+        (2, '2° de Secundaria'),
+        (3, '3° de Secundaria'),
+        (4, '4° de Secundaria'),
+        (5, '5° de Secundaria'),
+        (6, 'Egresado'),
+    ]
     ID_Estudiante = models.AutoField(primary_key=True)
+    actualizado = models.CharField(max_length=20, choices=DATOS_ACTUALIZADOS, default= "desactualizado")
     nombre = models.CharField(max_length=50)
     usuario = models.CharField(max_length=150, unique=True)
     contraseña = models.CharField(max_length=255)
@@ -12,7 +25,14 @@ class Estudiante(models.Model):
     is_active = models.BooleanField(default=True)  # Atributo requerido
     is_staff = models.BooleanField(default=False)  # Atributo requerido
     last_login = models.DateTimeField(null=True, blank=True)  # Campo requerido
-    
+    reporte_actualizado = models.BooleanField(default=False)
+    facebook = models.CharField(max_length=50, default="")
+    instagram = models.CharField(max_length=50, default="")
+    numCelular = models.CharField(max_length=9, default="")
+    colegio = models.CharField(max_length=30, default="")
+    grado = models.IntegerField(choices=GRADO_ESTUDIANTE, default=1)
+    ciudad = models.CharField(max_length=30, default="")
+    carrera = models.CharField(max_length=30, default="")
     def __str__(self):
         return self.usuario
 
@@ -61,7 +81,7 @@ class Reporte(models.Model):
     Ec_1 = models.IntegerField()
     Ec_2 = models.IntegerField()
     fecha_de_examen = models.DateField()
-    Observacion =models.CharField(max_length=200)
+    Observacion =models.CharField(max_length=200, default="")
     puesto = models.IntegerField()
 
     def obtener_datos(self):

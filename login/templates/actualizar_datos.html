@@ -1,0 +1,91 @@
+
+{% extends base_template %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cargar Excel</title>
+    <!-- Cargar archivo CSS estático -->
+    {% load static %}
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/crear_estudiante.css' %}">
+</head>
+<body>
+    <div class="main-content">
+        <h2>Queremos saber más sobre ti, para darte un mejor servicio</h2>
+        <!-- Mostrar mensajes flotantes -->
+        {% if messages %}
+            <div>
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    
+        <!-- Formulario para cargar el archivo Excel -->
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <p>Puedes encontrarnos como</p>
+            <div style="display: flex; gap: 20px; justify-content: center; font-size: 2rem; background-color: aliceblue; margin-bottom: 5px;">
+                <a href="https://www.facebook.com/AcademiaRobertHooke" target="_blank" aria-label="Facebook">
+                    <i class="fab fa-facebook-square"></i>
+                </a>
+                <a href="https://www.instagram.com/academiaroberthooke/" target="_blank" aria-label="Instagram">
+                    <i class="fab fa-instagram"></i>
+                </a>
+                <a href="https://www.tiktok.com/@academiaroberthooke" target="_blank" aria-label="TikTok">
+                    <i class="fab fa-tiktok"></i>
+                </a>
+                <a href="https://www.youtube.com/@academiapreuniversitariaro4941" target="_blank" aria-label="YouTube">
+                    <i class="fab fa-youtube"></i>
+                </a>
+            </div>
+            <button type="submit">Actualizar mis datos</button>
+        </form>
+        {% if exito %}
+            <!-- Modal de Éxito -->
+            <div id="success-modal" style="
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0, 0, 0, 0.7); display: flex; align-items: center;
+                justify-content: center; z-index: 9999;">
+                <div style="
+                    background: white; padding: 40px; border-radius: 20px;
+                    text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.2);">
+                    <div style="
+                        width: 100px; height: 100px; margin: 0 auto 20px;
+                        border-radius: 50%; background-color: #4BB543;
+                        display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-check" style="color: white; font-size: 50px;"></i>
+                    </div>
+                    <h2 style="margin: 0; font-size: 30px; color: black;">¡GRACIAS!!!!!!!</h2>
+                </div>
+            </div>
+            <script>
+        // Espera 3 segundos y redirige
+                setTimeout(() => {
+                    window.location.href = "{% url 'home' %}";
+                }, 500);
+            </script>
+        {% endif %}
+        {% if messages %}
+            <div>
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}" style="background-color: rgba(62, 203, 130, 0.936)">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <!-- Cargar archivo JavaScript estático -->
+        <script src="{% static 'js/scripts.js' %}"></script> 
+    </div>
+</body>
+</html>
+{% endblock %}

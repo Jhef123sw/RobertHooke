@@ -172,4 +172,20 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-/media
+
+__pycache__/
+*.py[cod]
+media/reportes/simulacros/RP100_reporte_simulacro.png
+media/reportes/simulacros/RP101_reporte_simulacro.png
+media/reportes/simulacros/RP102_reporte_simulacro.png
+media/reportes/simulacros/RP103_reporte_simulacro.png
+media/reportes/simulacros/RP104_reporte_simulacro.png
+media/reportes/simulacros/RP105_reporte_simulacro.png
+media/reportes/simulacros/RP106_reporte_simulacro.png
+media/reportes/simulacros/RP502_reporte_simulacro.png
+media/reportes/simulacros/RP503_reporte_simulacro.png
+media/reportes/simulacros/RP504_reporte_simulacro.png
+media/reportes/simulacros/RP505_reporte_simulacro.png
+media/reportes/simulacros/RP506_reporte_simulacro.png
+media/reportes/simulacros/RP507_reporte_simulacro.png
+media/reportes/simulacros/RP508_reporte_simulacro.png
