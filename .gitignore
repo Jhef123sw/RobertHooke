@@ -173,6 +173,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+/media
+
 __pycache__/
 *.py[cod]
 media/reportes/simulacros/RP100_reporte_simulacro.png

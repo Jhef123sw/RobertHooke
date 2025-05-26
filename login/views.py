@@ -36,6 +36,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
 from .models import Reporte, Estudiante
 from datetime import datetime
+from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task
 
 #Descargas
 
@@ -293,133 +294,9 @@ preguntas_semillero = {
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_todo_reporte(request):
-    try:
-        estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
-        ruta_guardar = 'media/reportes/simulacros'
-        plantilla_path = "login/static/img/plantilla-notas.png"
-
-        if not os.path.exists(plantilla_path):
-            raise Http404("No se encontró la plantilla del reporte.")
-
-        # Definimos cursos y preguntas por nivel
-        
-        for estudiante in estudiantes:
-            reportes_qs = estudiante.reportes.all().order_by('-fecha_de_examen')
-
-            if not reportes_qs.exists():
-                continue
-
-            # Tomar los últimos 8 y ordenarlos cronológicamente
-            reportes = list(reportes_qs[:8][::-1])
-
-
-            ruta_carpeta = f'media/{estudiante.usuario}_2025/imagenes_reporte/'
-            os.makedirs(ruta_carpeta, exist_ok=True)
-
-            # 1. Generar gráficos por curso según nivel
-            
-
-            # 1. Recolectar datos por curso según nivel
-            nivel = reportes[0].nivel # Todos los reportes del estudiante tienen mismo nivel
-            if nivel == 30:
-                cursos = cursos_pre
-                preguntas_por_curso = preguntas_semillero
-            else:
-                cursos = cursos_pre
-                preguntas_por_curso = preguntas_pre
-
-            datos_por_curso = {curso: [] for curso in cursos}
-
-            for reporte in reportes:
-                datos_cursos = reporte.obtener_datos()
-                fecha = reporte.fecha_de_examen
-
-                for curso in cursos:
-                    if curso not in datos_cursos:
-                        continue
-                    correctas, incorrectas = datos_cursos[curso]
-                    total = preguntas_por_curso.get(curso, 10)
-
-                    datos_por_curso[curso].append({
-                        "Fecha Simulacro": fecha,
-                        "correctas": correctas,
-                        "incorrectas": incorrectas,
-                        "total": total
-                    })
-
-            # 2. Generar gráfico por curso con función externa
-            for curso, datos in datos_por_curso.items():
-                crear_grafico_estudiante_curso(estudiante, curso, datos)
-
-
-            # 2. Gráfico de puntajes por fecha
-            fechas = [r.fecha_de_examen.strftime('%Y-%m-%d') for r in reportes]
-            puntajes = [r.obtener_total_puntaje() for r in reportes]
-
-            def generar_grafico_puntaje_barras(x, y):
-                fig, ax = plt.subplots(figsize=(6, 3))
-                barras = ax.bar(x, y, color='#DA880B')
-                for spine in ax.spines.values():
-                    spine.set_visible(False)
-                ax.set_title("")
-                ax.set_xlabel("")
-                ax.set_ylabel("")
-                for barra, valor in zip(barras, y):
-                    altura = barra.get_height()
-                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}',
-                            ha='center', va='bottom', fontsize=20, fontweight='bold')
-                tamaño_letra = 10 if len(x) > 5 else 10
-                plt.xticks(rotation=0, fontsize=tamaño_letra)
-                ax.tick_params(axis='y', left=False, labelleft=False)
-                ax.grid(False)
-                ruta_grafico = os.path.join(ruta_carpeta, "zgrafico_puntaje.png")
-                fig.tight_layout()
-                fig.savefig(ruta_grafico, bbox_inches='tight')
-                plt.close(fig)
-                return ruta_grafico
-
-            ruta_grafico_puntaje = generar_grafico_puntaje_barras(fechas, puntajes)
-
-            # 3. Crear imagen final con todos los gráficos
-            plantilla = Image.open(plantilla_path)
-            draw = ImageDraw.Draw(plantilla)
-            fuente = ImageFont.truetype("arial.ttf", 40)
-            draw.text((720, 124), estudiante.nombre, fill="black", font=fuente)
-
-            a, b, i = 180, 210, 1
-            imagenes = os.listdir(ruta_carpeta)
-            imagenes = [img for img in imagenes if img.endswith(".png") and img != "zgrafico_puntaje.png"]
-
-            for imagen in sorted(imagenes):
-                ruta_imagen = os.path.join(ruta_carpeta, imagen)
-                if not os.path.exists(ruta_imagen):
-                    continue
-                if i % 2 == 0:
-                    a = 960
-                else:
-                    a = 180
-                    b += 240
-                otra_imagen = Image.open(ruta_imagen)
-                imagen_redimensionada = otra_imagen.resize((700, 200))
-                plantilla.paste(imagen_redimensionada, (a, b))
-                i += 1
-
-            if os.path.exists(ruta_grafico_puntaje):
-                grafico_puntaje_img = Image.open(ruta_grafico_puntaje).resize((900, 200))
-                plantilla.paste(grafico_puntaje_img, (300, 260))
-
-            os.makedirs(ruta_guardar, exist_ok=True)
-            resultado_path = os.path.join(ruta_guardar, f"{estudiante.usuario}_reporte_simulacro.png")
-            plantilla.save(resultado_path)
-
-        messages.success(request, "Gráficos y reportes generados exitosamente para todos los estudiantes.")
-        return redirect('seleccionar_fecha_generacion')
-
-    except Exception as e:
-        print(f"Error al generar todo el reporte: {e}")
-        raise Http404("Ocurrió un error al generar los reportes. {e}")
-
-
+    generar_todo_reporte_task.delay()
+    messages.success(request, "Se está generando el reporte en segundo plano. Puedes continuar usando el sistema.")
+    return redirect('seleccionar_fecha_generacion')
 
 def crear_grafico_estudiante_curso(estudiante, nombre_curso, datos):
     if not datos:
@@ -528,68 +405,8 @@ def seleccionar_fecha_generacion(request):
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_imagenes_reportes_por_fecha(request, fecha):
-    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
-    cursos = [
-        "Razonamiento Verbal", "Razonamiento Matemático", "Aritmética", "Álgebra",
-        "Geometría", "Trigonometría", "Física", "Química", "Biología", "Lenguaje",
-        "Literatura", "Historia", "Geografía", "Filosofía", "Psicología", "Economía"
-    ]
-
-    ruta_base = 'media'
-
-    for estudiante in Estudiante.objects.filter(reporte_actualizado=True):
-        reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj)
-
-        for reporte in reportes:
-            datos = reporte.obtener_datos()
-            nivel = reporte.nivel  # 30 para semillero, 40 para pre u otro valor
-
-            preguntas_por_curso = preguntas_semillero if nivel == 30 else preguntas_pre
-
-            carpeta_usuario = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
-            os.makedirs(carpeta_usuario, exist_ok=True)
-
-            for curso, valores in datos.items():
-                correctas, incorrectas = valores
-                total_preguntas = preguntas_por_curso.get(curso, 10)
-                en_blanco = total_preguntas - (correctas + incorrectas)
-
-                etiquetas = ["Correctas", "Incorrectas", "En blanco"]
-                valores_barras = [correctas, incorrectas, en_blanco]
-                colores = ["green", "red", "gray"]
-
-                fig, ax = plt.subplots(figsize=(8, 4))
-                barras = ax.bar(etiquetas, valores_barras, color=colores)
-
-                # Mostrar los valores encima de las barras
-                for barra in barras:
-                    altura = barra.get_height()
-                    ax.annotate(f'{altura}',
-                                xy=(barra.get_x() + barra.get_width() / 2, altura),
-                                xytext=(0, 3),
-                                textcoords="offset points",
-                                ha='center', va='bottom',
-                                fontsize=10)
-
-                ax.set_title(f"{curso} - {reporte.fecha_de_examen}")
-
-                # Eliminar bordes y márgenes
-                ax.set_title("")
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                ax.spines['left'].set_visible(False)
-                ax.spines['bottom'].set_visible(False)
-                ax.tick_params(left=False, bottom=False)
-                ax.set_yticks([])
-
-                plt.tight_layout()
-
-                nombre_archivo = f"{curso}_{estudiante.usuario}_{reporte.fecha_de_examen}.png".replace(" ", "_")
-                ruta_archivo = os.path.join(carpeta_usuario, nombre_archivo)
-
-                plt.savefig(ruta_archivo, format='png', bbox_inches='tight', facecolor='white')
-                plt.close(fig)
-
+    generar_imagenes_reportes_por_fecha_task.delay(fecha)
+    messages.success(request, "Se están generando las imágenes en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 
 
@@ -1586,145 +1403,6 @@ def upload_excel(request):
 
 
 ##############################################3
-@login_required
-@estudiante_tipo_requerido(['administrador'])
-def generar_todo_reporte_respaldo(request):
-    try:
-        estudiantes = Estudiante.objects.all()
-
-        ruta_guardar = 'media/reportes/simulacros'
-        plantilla_path = "login/static/img/plantilla-notas.png"
-        if not os.path.exists(plantilla_path):
-            raise Http404("No se encontró la plantilla del reporte.")
-
-        for estudiante in estudiantes:
-            reportes = estudiante.reportes.all().order_by('fecha_de_examen')
-            if not reportes.exists():
-                continue
-
-            # --------------------------------------
-            # 1. Generar gráficos por curso
-            # --------------------------------------
-            cursos_data = {}
-            for reporte in reportes:
-                fecha = reporte.fecha_de_examen
-                datos_cursos = reporte.obtener_datos()
-
-                for curso, (corr, inc) in datos_cursos.items():
-                    if curso not in cursos_data:
-                        cursos_data[curso] = []
-                    cursos_data[curso].append({
-                        'Fecha Simulacro': fecha,
-                        'correctas': corr,
-                        'incorrectas': inc,
-                    })
-
-            for curso, datos in cursos_data.items():
-                crear_grafico_estudiante_curso(estudiante, curso, datos)
-
-            # --------------------------------------
-            # 2. Generar gráfico de línea: Puntaje
-            # --------------------------------------
-            fechas = [r.fecha_de_examen.strftime('%Y-%m-%d') for r in reportes]
-            puntajes = [r.obtener_total_puntaje() for r in reportes]
-
-            ###############################
-
-            def generar_grafico_puntaje_barras(x, y):
-                fig, ax = plt.subplots(figsize=(6, 3))
-
-                # Color solicitado
-                color_barras = '#DA880B'
-
-                # Crear gráfico de barras
-                barras = ax.bar(x, y, color=color_barras)
-                for spine in ax.spines.values():
-                    spine.set_visible(False)
-
-                # Quitar títulos y etiquetas de ejes
-                ax.set_title("")
-                ax.set_xlabel("")
-                ax.set_ylabel("")
-
-                # Mostrar etiquetas de puntaje encima de cada barra
-                for barra, valor in zip(barras, y):
-                    altura = barra.get_height()
-                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}', 
-                            ha='center', va='bottom', fontsize=20, fontweight='bold')
-
-                # Fechas en eje X
-                tamaño_letra = 10 if len(x) > 5 else 10
-                plt.xticks(rotation=0, fontsize=tamaño_letra)
-
-                # Quitar eje Y si no quieres marcas
-                ax.tick_params(axis='y', left=False, labelleft=False)
-                ax.grid(False)
-
-                # Guardar imagen
-                ruta_carpeta = f'media/{estudiante.usuario}_2025/imagenes_reporte/'
-                os.makedirs(ruta_carpeta, exist_ok=True)
-                ruta_grafico = os.path.join(ruta_carpeta, "grafico_puntaje.png")
-                fig.tight_layout()
-                fig.savefig(ruta_grafico, bbox_inches='tight')
-                plt.close(fig)
-
-                return ruta_grafico
-            
-
-            ########################################33
-
-            ruta_grafico_puntaje = generar_grafico_puntaje_barras(fechas, puntajes)
-
-            # --------------------------------------
-            # 3. Crear imagen final con todos los gráficos
-            # --------------------------------------
-            plantilla = Image.open(plantilla_path)
-            draw = ImageDraw.Draw(plantilla)
-            fuente = ImageFont.truetype("arial.ttf", 40)
-            draw.text((720, 124), estudiante.nombre, fill="black", font=fuente)
-
-            a, b, i = 180, 210, 1
-            imagenes = [
-                "Aritmética.png", "Biología.png", "Economía.png", "Filosofía.png",
-                "Física.png", "Geografía.png", "Geometría.png", "Historia.png",
-                "Lenguaje.png", "Literatura.png", "Psicología.png", "Química.png",
-                "Razonamiento_Matemático.png", "Razonamiento_Verbal.png", "Álgebra.png",
-                "Trigonometría.png",
-            ]
-
-            ruta_carpeta = f'media/{estudiante.usuario}_2025/imagenes_reporte/'
-
-            for imagen in imagenes:
-                ruta_imagen = os.path.join(ruta_carpeta, imagen)
-                if not os.path.exists(ruta_imagen):
-                    continue
-                if i % 2 == 0:
-                    a = 960
-                else:
-                    a = 180
-                    b += 240
-                otra_imagen = Image.open(ruta_imagen)
-                imagen_redimensionada = otra_imagen.resize((700, 200))
-                plantilla.paste(imagen_redimensionada, (a, b))
-                i += 1
-
-            #Agregar gráfico de puntajes  
-            if os.path.exists(ruta_grafico_puntaje):
-                grafico_puntaje_img = Image.open(ruta_grafico_puntaje).resize((900, 200))
-                plantilla.paste(grafico_puntaje_img, (300, 260))
-
-            os.makedirs(ruta_guardar, exist_ok=True)
-            resultado_path = os.path.join(ruta_guardar, f"{estudiante.usuario}_reporte_simulacro.png")
-            plantilla.save(resultado_path)
-
-        messages.success(request, "Gráficos y reportes generados exitosamente para todos los estudiantes.")
-        return redirect('seleccionar_fecha_generacion')
-
-    except Exception as e:
-        print(f"Error al generar todo el reporte: {e}")
-        raise Http404("Ocurrió un error al generar los reportes.{e}")
-
-
 
 def crear_grafico_estudiante_curso_respaldo(estudiante, nombre_curso, datos):
     df = pd.DataFrame(datos)
@@ -1989,3 +1667,133 @@ def descargar_reportes_asistencia_zip_respaldo(request):
     response = HttpResponse(buffer, content_type='application/zip')
     response['Content-Disposition'] = 'attachment; filename="reportes_asistencias.zip"'
     return response
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def generar_todo_reporte_respaldo_celery(request):
+    try:
+        estudiantes = Estudiante.objects.filter(reporte_actualizado = True)
+        ruta_guardar = 'media/reportes/simulacros'
+        plantilla_path = "login/static/img/plantilla-notas.png"
+
+        if not os.path.exists(plantilla_path):
+            raise Http404("No se encontró la plantilla del reporte.")
+
+        # Definimos cursos y preguntas por nivel
+        
+        for estudiante in estudiantes:
+            reportes_qs = estudiante.reportes.all().order_by('-fecha_de_examen')
+
+            if not reportes_qs.exists():
+                continue
+
+            # Tomar los últimos 8 y ordenarlos cronológicamente
+            reportes = list(reportes_qs[:8][::-1])
+
+
+            ruta_carpeta = f'media/{estudiante.usuario}_2025/imagenes_reporte/'
+            os.makedirs(ruta_carpeta, exist_ok=True)
+
+            # 1. Generar gráficos por curso según nivel
+            
+
+            # 1. Recolectar datos por curso según nivel
+            nivel = reportes[0].nivel # Todos los reportes del estudiante tienen mismo nivel
+            if nivel == 30:
+                cursos = cursos_pre
+                preguntas_por_curso = preguntas_semillero
+            else:
+                cursos = cursos_pre
+                preguntas_por_curso = preguntas_pre
+
+            datos_por_curso = {curso: [] for curso in cursos}
+
+            for reporte in reportes:
+                datos_cursos = reporte.obtener_datos()
+                fecha = reporte.fecha_de_examen
+
+                for curso in cursos:
+                    if curso not in datos_cursos:
+                        continue
+                    correctas, incorrectas = datos_cursos[curso]
+                    total = preguntas_por_curso.get(curso, 10)
+
+                    datos_por_curso[curso].append({
+                        "Fecha Simulacro": fecha,
+                        "correctas": correctas,
+                        "incorrectas": incorrectas,
+                        "total": total
+                    })
+
+            # 2. Generar gráfico por curso con función externa
+            for curso, datos in datos_por_curso.items():
+                crear_grafico_estudiante_curso(estudiante, curso, datos)
+
+
+            # 2. Gráfico de puntajes por fecha
+            fechas = [r.fecha_de_examen.strftime('%Y-%m-%d') for r in reportes]
+            puntajes = [r.obtener_total_puntaje() for r in reportes]
+
+            def generar_grafico_puntaje_barras(x, y):
+                fig, ax = plt.subplots(figsize=(6, 3))
+                barras = ax.bar(x, y, color='#DA880B')
+                for spine in ax.spines.values():
+                    spine.set_visible(False)
+                ax.set_title("")
+                ax.set_xlabel("")
+                ax.set_ylabel("")
+                for barra, valor in zip(barras, y):
+                    altura = barra.get_height()
+                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}',
+                            ha='center', va='bottom', fontsize=20, fontweight='bold')
+                tamaño_letra = 10 if len(x) > 5 else 10
+                plt.xticks(rotation=0, fontsize=tamaño_letra)
+                ax.tick_params(axis='y', left=False, labelleft=False)
+                ax.grid(False)
+                ruta_grafico = os.path.join(ruta_carpeta, "zgrafico_puntaje.png")
+                fig.tight_layout()
+                fig.savefig(ruta_grafico, bbox_inches='tight')
+                plt.close(fig)
+                return ruta_grafico
+
+            ruta_grafico_puntaje = generar_grafico_puntaje_barras(fechas, puntajes)
+
+            # 3. Crear imagen final con todos los gráficos
+            plantilla = Image.open(plantilla_path)
+            draw = ImageDraw.Draw(plantilla)
+            fuente = ImageFont.truetype("arial.ttf", 40)
+            draw.text((720, 124), estudiante.nombre, fill="black", font=fuente)
+
+            a, b, i = 180, 210, 1
+            imagenes = os.listdir(ruta_carpeta)
+            imagenes = [img for img in imagenes if img.endswith(".png") and img != "zgrafico_puntaje.png"]
+
+            for imagen in sorted(imagenes):
+                ruta_imagen = os.path.join(ruta_carpeta, imagen)
+                if not os.path.exists(ruta_imagen):
+                    continue
+                if i % 2 == 0:
+                    a = 960
+                else:
+                    a = 180
+                    b += 240
+                otra_imagen = Image.open(ruta_imagen)
+                imagen_redimensionada = otra_imagen.resize((700, 200))
+                plantilla.paste(imagen_redimensionada, (a, b))
+                i += 1
+
+            if os.path.exists(ruta_grafico_puntaje):
+                grafico_puntaje_img = Image.open(ruta_grafico_puntaje).resize((900, 200))
+                plantilla.paste(grafico_puntaje_img, (300, 260))
+
+            os.makedirs(ruta_guardar, exist_ok=True)
+            resultado_path = os.path.join(ruta_guardar, f"{estudiante.usuario}_reporte_simulacro.png")
+            plantilla.save(resultado_path)
+
+        messages.success(request, "Gráficos y reportes generados exitosamente para todos los estudiantes.")
+        return redirect('seleccionar_fecha_generacion')
+
+    except Exception as e:
+        print(f"Error al generar todo el reporte: {e}")
+        raise Http404("Ocurrió un error al generar los reportes. {e}")
