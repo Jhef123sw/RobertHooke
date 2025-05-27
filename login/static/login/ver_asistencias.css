@@ -1,0 +1,41 @@
+.contenedor-asistencias {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.contenedor-asistencias h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.tabla-asistencias table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background-color: #fafafa;
+}
+
+.tabla-asistencias thead {
+    background-color: #007bff;
+    color: white;
+}
+
+.tabla-asistencias th,
+.tabla-asistencias td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.tabla-asistencias tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.tabla-asistencias tr:hover {
+    background-color: #e9f5ff;
+}

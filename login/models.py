@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Estudiante(models.Model):
     PERMISOS_USUARIO = [
         ('estudiante', 'Estudiante'), ('administrador', 'Administrador'),
@@ -128,10 +129,5 @@ class Asistencia(models.Model):
     ID_Reporte = models.AutoField(primary_key=True)
     KK_usuario = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='asistencia')
     Fecha = models.DateField()
-    Ingreso_mana = models.CharField(max_length=5, default= "NM")
-    Salida_mana = models.CharField(max_length=5, default= "NM")
-    Ingreso_tarde = models.CharField(max_length=5, default= "NM")
-    Salida_tarde = models.CharField(max_length=5, default= "NM")
-    Ingreso_noche = models.CharField(max_length=5, default= "NM")
-    Salida_noche = models.CharField(max_length=5, default= "NM")
+    Hora = models.CharField(max_length=5, default="00:00")
     Observacion = models.CharField(max_length=30, default= "NM")

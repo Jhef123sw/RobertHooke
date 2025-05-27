@@ -18,6 +18,7 @@ from django.contrib import messages
 from datetime import datetime
 import pandas as pd
 import shutil
+from collections import defaultdict
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
@@ -28,7 +29,8 @@ from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
 from django.db.models import Q
-import os
+import locale
+locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 import matplotlib.pyplot as plt
 import math
 from django.conf import settings
@@ -37,6 +39,7 @@ from django.shortcuts import redirect, get_object_or_404
 from .models import Reporte, Estudiante
 from datetime import datetime
 from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task
+
 
 #Descargas
 
@@ -984,51 +987,103 @@ def eliminar_estudiante(request, pk):
     return render(request, 'eliminar_estudiante.html', {'estudiante': estudiante, "base_template": base_template})
 
 
+dias_semana = {
+    0: "LUNES",
+    1: "MARTES",
+    2: "MIÉRCOLES",
+    3: "JUEVES",
+    4: "VIERNES",
+    5: "SÁBADO",
+    6: "DOMINGO",
+}
+
+@login_required
+def ver_asistencias(request):
+    estudiante = request.user
+    base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
+    fecha_filtrada = request.GET.get('fecha')
+    # Filtrar asistencias del estudiante y ordenarlas
+    asistencias = Asistencia.objects.filter(KK_usuario=estudiante).order_by('Fecha', 'Hora')
+
+    if fecha_filtrada:
+        try:
+            fecha_obj = datetime.strptime(fecha_filtrada, "%Y-%m-%d").date()
+            asistencias = asistencias.filter(Fecha=fecha_obj)
+        except ValueError:
+            pass  # Fecha inválida, ignora el filtro
+
+    agrupadas_por_fecha = defaultdict(list)
+    for asistencia in asistencias:
+        agrupadas_por_fecha[asistencia.Fecha].append(asistencia)
+
+    datos = []
+    for fecha in asistencias.values_list('Fecha', flat=True).distinct().order_by('Fecha'):
+        marcas = asistencias.filter(Fecha=fecha).order_by('Hora')
+        for i, asistencia in enumerate(marcas, start=1):
+            dia_semana = dias_semana[fecha.weekday()]
+            fecha_corta = f"{dia_semana} {fecha.strftime('%d/%m')}"
+            datos.append({
+                "usuario": estudiante.usuario,
+                "nombre": estudiante.nombre,
+                "numero_marca": i,
+                "fecha": fecha.strftime('%d/%m/%Y'),
+                "fecha_corta": fecha_corta,
+                "hora": asistencia.Hora,
+                "observacion": asistencia.Observacion,
+            })
+
+    return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
+
+
+
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def cargar_asistencias(request):
     estudiante = request.user
-    if estudiante.tipo_estudiante == "administrador":  
-        base_template = "layouts/base.html"  # Plantilla para administrador
-    else:
-        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
+
     if request.method == 'POST':
         form = CargarExcelForm(request.POST, request.FILES)
         if form.is_valid():
             archivo_excel = request.FILES['archivo_excel']
             try:
                 df = pd.read_excel(archivo_excel)
-                columnas_esperadas = [
-                    'Cód. Alumno', 'Fecha', 'Marca 01', 'Marca 02', 'Marca 03', 'Marca 04', 'Marca 05', 'Marca 06', 'Observ'
-                ]
+                columnas_esperadas = ['usuario', 'marca']
                 if not all(col in df.columns for col in columnas_esperadas):
-                    messages.error(request, "El archivo Excel no tiene las columnas esperadas.")
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario' y 'marca'.")
                     return redirect('subir_asistencia')
+
                 for _, fila in df.iterrows():
-                    estudiante = Estudiante.objects.get(usuario=fila['Cód. Alumno'])
-                    Asistencia.objects.create(
-                        KK_usuario=estudiante,
-                        Fecha=fila['Fecha'],
-                        Ingreso_mana=fila['Marca 01'],
-                        Salida_mana=fila['Marca 02'],
-                        Ingreso_tarde=fila['Marca 03'],
-                        Salida_tarde=fila['Marca 04'],
-                        Ingreso_noche=fila['Marca 05'],
-                        Salida_noche=fila['Marca 06'],
-                        Observacion=fila['Observ']
-                    )
+                    try:
+                        estudiante = Estudiante.objects.get(usuario=fila['usuario'])
+                        # Parsear fecha y hora desde la columna 'marca'
+                        marca_datetime = pd.to_datetime(fila['marca'])
+
+                        fecha = marca_datetime.date()
+                        hora = marca_datetime.strftime("%H:%M")
+
+                        Asistencia.objects.create(
+                            KK_usuario=estudiante,
+                            Fecha=fecha,
+                            Hora=hora
+                        )
+                    except Estudiante.DoesNotExist:
+                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
+                        continue
+                    except Exception as e:
+                        messages.warning(request, f"Error procesando fila: {str(e)}")
+                        continue
+
                 messages.success(request, "Datos cargados exitosamente.")
                 return redirect('subir_asistencia')
 
-            except Estudiante.DoesNotExist:
-                messages.error(request, "El usuario no existe en la base de datos.")
-                return redirect('subir_asistencia')
             except Exception as e:
                 messages.error(request, f"Error al procesar el archivo: {str(e)}")
                 return redirect('subir_asistencia')
     else:
         form = CargarExcelForm()
-    
+
     return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
 
 
@@ -1797,3 +1852,51 @@ def generar_todo_reporte_respaldo_celery(request):
     except Exception as e:
         print(f"Error al generar todo el reporte: {e}")
         raise Http404("Ocurrió un error al generar los reportes. {e}")
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def cargar_asistencias_respaldo(request):
+    estudiante = request.user
+    if estudiante.tipo_estudiante == "administrador":  
+        base_template = "layouts/base.html"  # Plantilla para administrador
+    else:
+        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    if request.method == 'POST':
+        form = CargarExcelForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo_excel = request.FILES['archivo_excel']
+            try:
+                df = pd.read_excel(archivo_excel)
+                columnas_esperadas = [
+                    'Cód. Alumno', 'Fecha', 'Marca 01', 'Marca 02', 'Marca 03', 'Marca 04', 'Marca 05', 'Marca 06', 'Observ'
+                ]
+                if not all(col in df.columns for col in columnas_esperadas):
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas.")
+                    return redirect('subir_asistencia')
+                for _, fila in df.iterrows():
+                    estudiante = Estudiante.objects.get(usuario=fila['Cód. Alumno'])
+                    Asistencia.objects.create(
+                        KK_usuario=estudiante,
+                        Fecha=fila['Fecha'],
+                        Ingreso_mana=fila['Marca 01'],
+                        Salida_mana=fila['Marca 02'],
+                        Ingreso_tarde=fila['Marca 03'],
+                        Salida_tarde=fila['Marca 04'],
+                        Ingreso_noche=fila['Marca 05'],
+                        Salida_noche=fila['Marca 06'],
+                        Observacion=fila['Observ']
+                    )
+                messages.success(request, "Datos cargados exitosamente.")
+                return redirect('subir_asistencia')
+
+            except Estudiante.DoesNotExist:
+                messages.error(request, "El usuario no existe en la base de datos.")
+                return redirect('subir_asistencia')
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo: {str(e)}")
+                return redirect('subir_asistencia')
+    else:
+        form = CargarExcelForm()
+    
+    return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
