@@ -29,8 +29,6 @@ from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
 from django.db.models import Q
-import locale
-locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 import matplotlib.pyplot as plt
 import math
 from django.conf import settings
