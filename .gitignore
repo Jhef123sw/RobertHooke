@@ -191,3 +191,5 @@ media/reportes/simulacros/RP505_reporte_simulacro.png
 media/reportes/simulacros/RP506_reporte_simulacro.png
 media/reportes/simulacros/RP507_reporte_simulacro.png
 media/reportes/simulacros/RP508_reporte_simulacro.png
+appPrincipal/settings.py
+appPrincipal/urls.py

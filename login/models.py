@@ -130,4 +130,5 @@ class Asistencia(models.Model):
     KK_usuario = models.ForeignKey(Estudiante, on_delete=models.CASCADE, related_name='asistencia')
     Fecha = models.DateField()
     Hora = models.CharField(max_length=5, default="00:00")
-    Observacion = models.CharField(max_length=30, default= "NM")
+    Observacion = models.CharField(max_length=30, default= "")
+    Modalidad = models.CharField(max_length=15, default="PRESENCIAL")

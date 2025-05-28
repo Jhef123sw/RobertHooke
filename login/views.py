@@ -227,7 +227,7 @@ def generar_reporte_asistencia_imagen(estudiante, asistencias):
 
     carpeta = f'media/reportes/asistencias'
     os.makedirs(carpeta, exist_ok=True)
-    nombre_archivo = os.path.join(carpeta, f'reporte_asistencia_{estudiante.usuario}.png')
+    nombre_archivo = os.path.join(carpeta, f'{estudiante.usuario}_reporte_asistencia.png')
     imagen.save(nombre_archivo)
 
     return nombre_archivo
@@ -1028,6 +1028,7 @@ def ver_asistencias(request):
                 "fecha_corta": fecha_corta,
                 "hora": asistencia.Hora,
                 "observacion": asistencia.Observacion,
+                "modalidad" : asistencia.Modalidad,
             })
 
     return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
@@ -1047,9 +1048,9 @@ def cargar_asistencias(request):
             archivo_excel = request.FILES['archivo_excel']
             try:
                 df = pd.read_excel(archivo_excel)
-                columnas_esperadas = ['usuario', 'marca']
+                columnas_esperadas = ['usuario', 'marca', 'modalidad']
                 if not all(col in df.columns for col in columnas_esperadas):
-                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario' y 'marca'.")
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario', 'marca' y 'modalidad'")
                     return redirect('subir_asistencia')
 
                 for _, fila in df.iterrows():
@@ -1060,11 +1061,12 @@ def cargar_asistencias(request):
 
                         fecha = marca_datetime.date()
                         hora = marca_datetime.strftime("%H:%M")
-
+                        modalidad = fila.get('modalidad')
                         Asistencia.objects.create(
                             KK_usuario=estudiante,
                             Fecha=fecha,
-                            Hora=hora
+                            Hora=hora,
+                            Modalidad = modalidad
                         )
                     except Estudiante.DoesNotExist:
                         messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
