@@ -4,7 +4,10 @@ matplotlib.use('Agg')  # Forzar backend sin GUI
 import matplotlib.pyplot as plt
 import base64
 import os
+from datetime import time
 import openpyxl
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
 import io
 from django.urls import reverse
 from openpyxl.utils import get_column_letter
@@ -24,7 +27,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from .models import Estudiante, Reporte, Asistencia
-from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm
+from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2
 from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
@@ -818,6 +821,185 @@ def reportes_puesto_puntaje(request):
 
 #Administración de estudiantes
 
+def registrar_asistencia(request):
+    usuario_actual = request.user
+    if usuario_actual.tipo_estudiante == "administrador":  
+        base_template = "layouts/base.html"
+    else:
+        base_template = "layouts/base2.html"
+    if request.method == 'POST':
+        form = AsistenciaForm2(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('listar_asistencias')  # o cualquier vista a la que quieras volver
+    else:
+        form = AsistenciaForm2()
+    return render(request, 'registrar_asistencia.html', {'base_template': base_template,'form': form})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def ver_todas_asistencias(request):
+    fecha_filtrada = request.GET.get('fecha')
+    query = request.GET.get('q', '').strip()
+
+    asistencias = Asistencia.objects.all().select_related('KK_usuario').order_by('Fecha', 'Hora')
+
+    if fecha_filtrada:
+        try:
+            fecha_obj = datetime.strptime(fecha_filtrada, "%Y-%m-%d").date()
+            asistencias = asistencias.filter(Fecha=fecha_obj)
+        except ValueError:
+            pass
+
+    if query:
+        asistencias = asistencias.filter(
+            Q(KK_usuario__nombre__icontains=query) |
+            Q(KK_usuario__usuario__icontains=query)
+        )
+
+    datos = []
+    for fecha in asistencias.values_list('Fecha', flat=True).distinct().order_by('Fecha'):
+        marcas_fecha = asistencias.filter(Fecha=fecha).order_by('KK_usuario__usuario', 'Hora')
+        marcas_por_usuario = defaultdict(list)
+
+        for asistencia in marcas_fecha:
+            marcas_por_usuario[asistencia.KK_usuario.usuario].append(asistencia)
+
+        for usuario, marcas in marcas_por_usuario.items():
+            for i, asistencia in enumerate(marcas, start=1):
+                datos.append({
+                    "id": asistencia.ID_Reporte,
+                    "usuario": asistencia.KK_usuario.usuario,
+                    "nombre": asistencia.KK_usuario.nombre,
+                    "numero_marca": i,
+                    "fecha": fecha.strftime('%d/%m/%Y'),
+                    "fecha_corta": dias_semana[fecha.weekday()] + '/' + fecha.strftime('%d/%m/%Y'),
+                    "marca": "ENTRADA" if i in [1, 3] else "SALIDA",
+                    "hora": asistencia.Hora,
+                    "modalidad": asistencia.Modalidad,
+                    "observacion": asistencia.Observacion
+                })
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        html = render_to_string("fragmentos/tabla_asistencias.html", {"asistencias": datos})
+        return JsonResponse({"html": html})
+
+    return render(request, "listar_asistencias.html", {
+        "asistencias": datos,
+        "fecha_filtrada": fecha_filtrada,
+        "query": query,
+        "base_template": "layouts/base.html"
+    })
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def eliminar_asistencia(request, pk):
+    asistencia = get_object_or_404(Asistencia, pk=pk)
+    asistencia.delete()
+    messages.success(request, "La asistencia fue eliminada correctamente.")
+    return redirect('listar_asistencias')  # Asegúrate de tener esta URL nombrada
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def editar_asistencia(request, pk):
+    usuario_actual = request.user
+
+    # Definir la plantilla según el tipo de usuario
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    asistencia = get_object_or_404(Asistencia, pk=pk)
+
+    if request.method == 'POST':
+        nueva_fecha = request.POST.get('fecha')
+        nueva_modalidad = request.POST.get('modalidad')
+        nueva_observacion = request.POST.get('observacion')
+
+        asistencia.Fecha = nueva_fecha
+        asistencia.Modalidad = nueva_modalidad
+        asistencia.Observacion = nueva_observacion
+        asistencia.save()
+
+        messages.success(request, 'Asistencia actualizada correctamente.')
+        return redirect('listar_asistencias')
+
+    return render(request, 'editar_asistencia.html', {'base_template': base_template,
+        'asistencia': asistencia
+    })
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def acciones_asistencias(request):
+    if request.method == 'POST':
+        ids = request.POST.getlist('asistencias')
+        accion = request.POST.get('accion')
+
+        if not ids:
+            messages.warning(request, "No seleccionaste asistencias.")
+            return redirect('listar_asistencias')
+
+        asistencias = Asistencia.objects.filter(pk__in=ids)
+
+        if accion == 'eliminar':
+            cantidad = asistencias.count()
+            asistencias.delete()
+            messages.success(request, f"{cantidad} asistencia(s) eliminada(s) correctamente.")
+            return redirect('listar_asistencias')
+
+        elif accion == 'descargar':
+            buffer = BytesIO()
+            p = canvas.Canvas(buffer, pagesize=landscape(A4))
+            width, height = landscape(A4)
+
+            def dibujar_encabezado(y_pos):
+                p.setFont("Helvetica-Bold", 14)
+                p.drawString(30, height - 40, "Reporte de Asistencias - Academia Robert Hooke")
+
+                headers = ["Usuario", "Nombre", "Fecha", "Hora", "Nro Marca", "Modalidad", "Observación"]
+                x_positions = [30, 80, 310, 390, 470, 550, 650]
+                p.setFont("Helvetica-Bold", 10)
+                for i, header in enumerate(headers):
+                    p.drawString(x_positions[i], y_pos, header)
+                return y_pos - 25
+
+            y = dibujar_encabezado(height - 80)
+            p.setFont("Helvetica", 10)
+
+            # Agrupamos asistencias por (usuario, fecha)
+            from collections import defaultdict
+            agrupadas = defaultdict(list)
+            for a in asistencias.order_by('KK_usuario__usuario', 'Fecha', 'Hora'):
+                clave = (a.KK_usuario.usuario, a.Fecha)
+                agrupadas[clave].append(a)
+
+            for grupo in agrupadas.values():
+                for i, a in enumerate(grupo, start=1):
+                    datos = [
+                        a.KK_usuario.usuario,
+                        a.KK_usuario.nombre,
+                        a.Fecha.strftime('%d/%m/%Y'),
+                        a.Hora,
+                        "ENTRADA" if i in [1, 3] else "SALIDA",
+                        a.Modalidad,
+                        a.Observacion or "-"
+                    ]
+                    x_positions = [30, 80, 310, 390, 470, 550, 650]
+                    for j, valor in enumerate(datos):
+                        p.drawString(x_positions[j], y, str(valor))
+                    y -= 20
+
+                    if y < 40:
+                        p.showPage()
+                        y = dibujar_encabezado(height - 50)
+                        p.setFont("Helvetica", 10)
+
+            p.save()
+            buffer.seek(0)
+
+            return FileResponse(buffer, as_attachment=True, filename="asistencias_seleccionadas.pdf")
+
+
+    return redirect('listar_asistencias')
+
+
 @require_POST
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -959,9 +1141,26 @@ def editar_estudiante(request, pk):
         form = EstudianteForm2(instance=estudiante)
     return render(request, 'editar_estudiante.html', {'form': form, "base_template": base_template})
 
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def eliminar_estudiante(request, pk):
+    estudiante = get_object_or_404(Estudiante, pk=pk)
+
+    # Elimina sin confirmación HTML
+    ruta_base = r'media'
+    carpeta_estudiante = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
+
+    if os.path.exists(carpeta_estudiante) and os.path.isdir(carpeta_estudiante):
+        shutil.rmtree(carpeta_estudiante)
+
+    estudiante.delete()
+    return redirect('lista_estudiantes')
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def eliminar_estudiante_respaldo(request, pk):
     usuario_actual = request.user
     base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
 
@@ -1034,8 +1233,6 @@ def ver_asistencias(request):
     return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
 
 
-
-
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def cargar_asistencias(request):
@@ -1053,27 +1250,54 @@ def cargar_asistencias(request):
                     messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario', 'marca' y 'modalidad'")
                     return redirect('subir_asistencia')
 
+                # Agrupar marcas por usuario y fecha
+                marcas_por_estudiante_fecha = defaultdict(list)
+
                 for _, fila in df.iterrows():
                     try:
                         estudiante = Estudiante.objects.get(usuario=fila['usuario'])
-                        # Parsear fecha y hora desde la columna 'marca'
                         marca_datetime = pd.to_datetime(fila['marca'])
-
                         fecha = marca_datetime.date()
-                        hora = marca_datetime.strftime("%H:%M")
                         modalidad = fila.get('modalidad')
+                        marcas_por_estudiante_fecha[(estudiante, fecha)].append((marca_datetime, modalidad))
+                    except Estudiante.DoesNotExist:
+                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
+                    except Exception as e:
+                        messages.warning(request, f"Error procesando fila: {str(e)}")
+
+                for (estudiante, fecha), marcas in marcas_por_estudiante_fecha.items():
+                    # Separar en horarios de mañana y tarde
+                    manana = [m for m in marcas if m[0].time() <= time(15, 0)]
+                    tarde = [m for m in marcas if m[0].time() > time(16, 0)]
+
+                    registros = []
+
+                    if manana:
+                        entrada_manana = min(manana, key=lambda x: x[0])
+                        salida_manana = max(manana, key=lambda x: x[0])
+                        if entrada_manana[0] != salida_manana[0]:
+                            registros.append(entrada_manana)
+                            registros.append(salida_manana)
+                        else:
+                            registros.append(entrada_manana)
+
+                    if tarde:
+                        entrada_tarde = min(tarde, key=lambda x: x[0])
+                        salida_tarde = max(tarde, key=lambda x: x[0])
+                        if entrada_tarde[0] != salida_tarde[0]:
+                            registros.append(entrada_tarde)
+                            registros.append(salida_tarde)
+                        else:
+                            registros.append(entrada_tarde)
+
+                    for marca_datetime, modalidad in registros:
+                        hora = marca_datetime.strftime("%H:%M")
                         Asistencia.objects.create(
                             KK_usuario=estudiante,
                             Fecha=fecha,
                             Hora=hora,
-                            Modalidad = modalidad
+                            Modalidad=modalidad
                         )
-                    except Estudiante.DoesNotExist:
-                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
-                        continue
-                    except Exception as e:
-                        messages.warning(request, f"Error procesando fila: {str(e)}")
-                        continue
 
                 messages.success(request, "Datos cargados exitosamente.")
                 return redirect('subir_asistencia')
@@ -1085,6 +1309,9 @@ def cargar_asistencias(request):
         form = CargarExcelForm()
 
     return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
+
+
 
 
 @login_required
@@ -1899,4 +2126,95 @@ def cargar_asistencias_respaldo(request):
         form = CargarExcelForm()
     
     return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def cargar_asistencias_respaldo(request):
+    estudiante = request.user
+    base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
+
+    if request.method == 'POST':
+        form = CargarExcelForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo_excel = request.FILES['archivo_excel']
+            try:
+                df = pd.read_excel(archivo_excel)
+                columnas_esperadas = ['usuario', 'marca', 'modalidad']
+                if not all(col in df.columns for col in columnas_esperadas):
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario', 'marca' y 'modalidad'")
+                    return redirect('subir_asistencia')
+
+                for _, fila in df.iterrows():
+                    try:
+                        estudiante = Estudiante.objects.get(usuario=fila['usuario'])
+                        # Parsear fecha y hora desde la columna 'marca'
+                        marca_datetime = pd.to_datetime(fila['marca'])
+
+                        fecha = marca_datetime.date()
+                        hora = marca_datetime.strftime("%H:%M")
+                        modalidad = fila.get('modalidad')
+                        Asistencia.objects.create(
+                            KK_usuario=estudiante,
+                            Fecha=fecha,
+                            Hora=hora,
+                            Modalidad = modalidad
+                        )
+                    except Estudiante.DoesNotExist:
+                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
+                        continue
+                    except Exception as e:
+                        messages.warning(request, f"Error procesando fila: {str(e)}")
+                        continue
+
+                messages.success(request, "Datos cargados exitosamente.")
+                return redirect('subir_asistencia')
+
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo: {str(e)}")
+                return redirect('subir_asistencia')
+    else:
+        form = CargarExcelForm()
+
+    return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
+@login_required
+def ver_todas_asistencias_respaldo(request):
+    fecha_filtrada = request.GET.get('fecha')
+    asistencias = Asistencia.objects.all().select_related('KK_usuario').order_by('Fecha', 'Hora')
+
+    if fecha_filtrada:
+        try:
+            fecha_obj = datetime.strptime(fecha_filtrada, "%Y-%m-%d").date()
+            asistencias = asistencias.filter(Fecha=fecha_obj)
+        except ValueError:
+            pass
+
+    datos = []
+    for fecha in asistencias.values_list('Fecha', flat=True).distinct().order_by('Fecha'):
+        marcas_fecha = asistencias.filter(Fecha=fecha).order_by('KK_usuario__usuario', 'Hora')
+        marcas_por_usuario = defaultdict(list)
+
+        for asistencia in marcas_fecha:
+            marcas_por_usuario[asistencia.KK_usuario.usuario].append(asistencia)
+
+        for usuario, marcas in marcas_por_usuario.items():
+            for i, asistencia in enumerate(marcas, start=1):
+                dia_semana = dias_semana[fecha.weekday()]
+                datos.append({
+                    "id": asistencia.ID_Reporte,
+                    "usuario": asistencia.KK_usuario.usuario,
+                    "nombre": asistencia.KK_usuario.nombre,
+                    "numero_marca": i,
+                    "fecha": fecha.strftime('%d/%m/%Y'),
+                    "marca": "ENTRADA" if i in [1, 3] else "SALIDA",
+                    "hora": asistencia.Hora,
+                    "modalidad": asistencia.Modalidad,
+                    "observacion": asistencia.Observacion
+                })
+
+    return render(request, "listar_asistencias.html", {
+        "asistencias": datos,
+        "base_template": "layouts/base.html",  # O ajusta según usuario
+        "fecha_filtrada": fecha_filtrada
+    })
 

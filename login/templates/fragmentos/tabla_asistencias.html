@@ -1,0 +1,29 @@
+{% for a in asistencias %}
+<tr>
+    <td>
+        <input type="checkbox" name="asistencias" value="{{ a.id }}" class="asistencia-checkbox">
+    </td>
+    <td style="color: black;">{{ a.usuario }}</td>
+    <td style="color: black;">{{ a.nombre }}</td>
+    <td style="color: black;">{{ a.fecha }}</td>
+    <td style="color: black;">{{ a.fecha_corta }}</td>
+    <td style="color: black;">
+                            {% if a.numero_marca == 1 or a.numero_marca == 3 %}
+                                ENTRADA
+                            {% else %}
+                                SALIDA
+                            {% endif %}
+                        </td>
+    <td style="color: black;">{{ a.hora }}</td>
+    <td style="color: black;">{{ a.modalidad }}</td>
+    <td style="color: black;">{{ a.observacion }}</td>
+    <td>
+        <a href="{% url 'editar_asistencia' a.id %}" class="btn-editar">Editar</a>
+        <a href="#" class="btn-eliminar" data-id="{{ a.id }}">Eliminar</a>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="text-center">No hay asistencias registradas.</td>
+</tr>
+{% endfor %}

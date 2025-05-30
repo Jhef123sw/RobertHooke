@@ -132,3 +132,42 @@ class Asistencia(models.Model):
     Hora = models.CharField(max_length=5, default="00:00")
     Observacion = models.CharField(max_length=30, default= "")
     Modalidad = models.CharField(max_length=15, default="PRESENCIAL")
+
+class VariableControl(models.Model):
+    #Cantidad de preguntas para preuniversitario
+    Rm_Pre = models.IntegerField(default=15)
+    Rv_Pre = models.IntegerField(default= 15)
+    Ar_Pre = models.IntegerField(default=5)
+    Al_Pre = models.IntegerField(default=5)
+    Geom_Pre = models.IntegerField(default= 4)
+    Trig_Pre = models.IntegerField(default=4)
+    Fi_Pre = models.IntegerField(default=5)
+    Qui_Pre = models.IntegerField(default= 5)
+    Bio_Pre = models.IntegerField(default=9)
+    Le_Pre = models.IntegerField(default=6)
+    Lit_Pre = models.IntegerField(default=6)
+    Hi_Pre = models.IntegerField(default=3)
+    Geog_Pre = models.IntegerField(default=2)
+    Fil_Pre = models.IntegerField(default= 2)
+    Psi_Pre = models.IntegerField(default=2)
+    Ec_Pre = models.IntegerField(default=2)
+    #Cantidad de preguntas para semillero
+    Rm_Sem = models.IntegerField(default=10)
+    Rv_Sem = models.IntegerField(default= 10)
+    Ar_Sem = models.IntegerField(default=5)
+    Al_Sem = models.IntegerField(default=5)
+    Geom_Sem = models.IntegerField(default= 0)
+    Trig_Sem = models.IntegerField(default=0)
+    Fi_Sem = models.IntegerField(default=0)
+    Qui_Sem = models.IntegerField(default= 0)
+    Bio_Sem = models.IntegerField(default=0)
+    Le_Sem = models.IntegerField(default=0)
+    Lit_Sem = models.IntegerField(default=5)
+    Hi_Sem = models.IntegerField(default=0)
+    Geog_Sem = models.IntegerField(default=0)
+    Fil_Sem = models.IntegerField(default= 0)
+    Psi_Sem = models.IntegerField(default=0)
+    Ec_Sem = models.IntegerField(default=0)
+    #Horarios de entrada y salida
+       
+            

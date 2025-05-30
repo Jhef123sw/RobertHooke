@@ -1,0 +1,78 @@
+{% extends base_template %}
+
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Asistencia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="form-container">
+    <h4 class="form-title" style="color: black;">Registrar Asistencia</h4>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="kk-usuario-select" class="form-label" style="color: black;">Estudiante</label>
+            {{ form.KK_usuario }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.Fecha.id_for_label }}" class="form-label" style="color: black;">Fecha</label>
+            {{ form.Fecha }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.Hora.id_for_label }}" class="form-label" style="color: black;">Hora</label>
+            {{ form.Hora }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.Observacion.id_for_label }}" class="form-label" style="color: black;">Observación</label>
+            {{ form.Observacion }}
+        </div>
+        <div class="mb-3">
+            <label for="{{ form.Modalidad.id_for_label }}" class="form-label" style="color: black;">Modalidad</label>
+            {{ form.Modalidad }}
+        </div>
+        <button type="submit" class="btn btn-success w-100">Guardar asistencia</button>
+    </form>
+</div>
+
+<script>
+    // Filtro en el combobox
+    document.addEventListener("DOMContentLoaded", function () {
+        const select = document.getElementById("kk-usuario-select");
+        const searchBox = document.createElement("input");
+
+        searchBox.type = "text";
+        searchBox.className = "form-control mb-2";
+        searchBox.placeholder = "Filtrar estudiante...";
+        select.parentNode.insertBefore(searchBox, select);
+
+        searchBox.addEventListener("input", function () {
+            const filtro = this.value.toLowerCase();
+            const opciones = select.options;
+            for (let i = 0; i < opciones.length; i++) {
+                const texto = opciones[i].text.toLowerCase();
+                opciones[i].style.display = texto.includes(filtro) ? "" : "none";
+            }
+        });
+    });
+</script>
+</body>
+</html>
+{% endblock %}

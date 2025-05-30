@@ -27,7 +27,13 @@
     <form class="form-eliminar" method="post" action="{% url 'eliminar_estudiantes_masivo' %}" id="formEliminarEstudiantes">
         {% csrf_token %}
 
-        <div class="acciones-superiores d-flex gap-2 mb-3">
+        <div class="acciones-superiores d-flex gap-2 mb-3 flex-wrap">
+            <a href="{% url 'registrar_estudiante' %}">
+                <button type="button" class="btn btn-primary">
+                    Registrar un alumno
+                </button>
+            </a>
+
             <button type="submit"
                     formaction="{% url 'descargar_reportes_zip' %}"
                     formmethod="post"
@@ -38,14 +44,6 @@
             </button>
 
             <button type="submit"
-                    formaction="{% url 'descargar_reportes_asistencias_zip' %}"
-                    formmethod="post"
-                    class="btn btn-success"
-                    id="btn-descargar-asistencias"
-                    disabled>
-                Descargar reportes de asistencia
-            </button>
-            <button type="submit"
                     formaction="{% url 'descargar_estudiantes_excel' %}"
                     formmethod="post"
                     class="btn btn-info"
@@ -53,6 +51,7 @@
                     disabled>
                 Descargar estudiantes
             </button>
+
             <button type="submit"
                     onclick="return confirm('¿Seguro que deseas eliminar los estudiantes seleccionados?')"
                     class="btn btn-danger"
@@ -85,7 +84,6 @@
     const inputBusqueda = document.getElementById('input-busqueda');
     const tablaBody = document.getElementById('tabla-estudiantes-body');
     const btnDescargar = document.getElementById('btn-descargar-reportes');
-    const btnAsistencia = document.getElementById('btn-descargar-asistencias');
     const btnEliminar = document.getElementById('btn-eliminar-estudiantes');
     const btnEstudiantesExcel = document.getElementById('btn-descargar-estudiantes');
     const selectAllCheckbox = document.getElementById('select-all');
@@ -94,7 +92,6 @@
         const checkboxes = tablaBody.querySelectorAll('.estudiante-checkbox');
         const algunoSeleccionado = Array.from(checkboxes).some(cb => cb.checked);
         btnDescargar.disabled = !algunoSeleccionado;
-        btnAsistencia.disabled = !algunoSeleccionado;
         btnEliminar.disabled = !algunoSeleccionado;
         btnEstudiantesExcel.disabled = !algunoSeleccionado;
     }
@@ -129,5 +126,17 @@
     });
 
     actualizarEstadoBotones();
+    // Función para delegar el evento click a botones de eliminar
+    tablaBody.addEventListener('click', function(event) {
+        const target = event.target;
+        if (target.classList.contains('btn-eliminar')) {
+            event.preventDefault(); // Previene el salto por el href="#"
+            const estudianteId = target.getAttribute('data-id');
+            if (confirm("¿Estás seguro de que deseas eliminar este estudiante?")) {
+                window.location.href = `/estudiantes/eliminar/${estudianteId}/`;
+            }
+        }
+    });
+
 </script>
 {% endblock %}

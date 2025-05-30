@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia
 
 urlpatterns = [
     path('', reportes_puesto_puntaje, name='home'),
@@ -31,4 +31,9 @@ urlpatterns = [
     path('seleccionar_fecha_reporte/', seleccionar_fecha_generacion, name='seleccionar_fecha_generacion'),
     path('subir_reporte/', subir_reporte, name='subir_reporte'),
     path('mis-asistencias/', ver_asistencias, name='ver_asistencias'),
+    path('listar_asistencias/', ver_todas_asistencias, name='listar_asistencias'),
+    path('asistencias/eliminar/<int:pk>/', eliminar_asistencia, name='eliminar_asistencia'),
+    path('asistencias/editar/<int:pk>/', editar_asistencia, name='editar_asistencia'),
+    path('asistencias/acciones/', acciones_asistencias, name='acciones_asistencias'),
+    path('registrar_asistencias/', registrar_asistencia, name='registrar_asistencia'),
 ]

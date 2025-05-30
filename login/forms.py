@@ -1,5 +1,5 @@
 from django import forms
-from .models import Estudiante
+from .models import Estudiante, Asistencia
 
 class LoginForm(forms.Form):
     usuario = forms.CharField(label="Usuario")
@@ -30,18 +30,11 @@ class EstudianteForm2(forms.ModelForm):
     class Meta:
         model = Estudiante
         fields = ['nombre', 'usuario', 'contraseña']
-        widgets = {
-            'contraseña': forms.PasswordInput(render_value=True),
-        }
 
 class EstudianteForm(forms.ModelForm):
     class Meta:
         model = Estudiante
         fields = ['usuario', 'contraseña', 'nombre']
-        
-        #widgets = {
-        #    'contraseña': forms.PasswordInput(),  # Para que la contraseña se oculte al escribir
-        #}
 
 class ActualizarDatosForm(forms.ModelForm):
     GRADO_CHOICES = [
@@ -60,10 +53,45 @@ class ActualizarDatosForm(forms.ModelForm):
         label="¿Cuál es tu grado actual de estudios?"
     )
     ciudad = forms.CharField(required=True, label="¿De qué ciudad nos visitas?")
-    numCelular = forms.CharField(required=True, label="Número de celular (De preferencia que tenga Whatsapp)")
+    numCelular = forms.CharField(required=True, label="Número de celular (Que tenga Whatsapp)")
     instagram = forms.CharField(required=True, label="¿Cómo te encontramos en instagram?")
     facebook = forms.CharField(required=True, label="¿Cómo te encontramos en Facebook?")
     carrera = forms.CharField(required=True, label="¿A qué carrera deseas postular?")
     class Meta:
         model = Estudiante
         fields = ['nombre','colegio', 'grado', 'ciudad', 'numCelular', 'instagram', 'facebook', 'carrera']
+
+class AsistenciaForm(forms.ModelForm):
+    MODALIDAD_CHOICES = [
+        'PRESENCIAL', 'VIRTUAL'
+    ]
+    class Meta:
+        model = Asistencia
+        fields = ['KK_usuario', 'Fecha', 'Observacion', 'Modalidad']
+
+
+class AsistenciaForm2(forms.ModelForm):
+    class Meta:
+        model = Asistencia
+        fields = ['KK_usuario', 'Fecha', 'Hora', 'Observacion', 'Modalidad']
+        widgets = {
+            'KK_usuario': forms.Select(attrs={
+                'class': 'form-select', 'id': 'kk-usuario-select'
+            }),
+            'Fecha': forms.DateInput(attrs={
+                'type': 'date', 'class': 'form-control'
+            }),
+            'Hora': forms.TimeInput(format='%H:%M', attrs={
+                'type': 'time', 'class': 'form-control'
+            }),
+            'Observacion': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Escriba alguna observación...'
+            }),
+            'Modalidad': forms.Select(choices=[('PRESENCIAL', 'PRESENCIAL'), ('VIRTUAL', 'VIRTUAL')],
+                                      attrs={'class': 'form-select'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Solo incluir estudiantes con tipo_estudiante activo
+        self.fields['KK_usuario'].queryset = Estudiante.objects.filter(tipo_estudiante__iexact='estudiante')
