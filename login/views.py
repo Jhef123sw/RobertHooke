@@ -26,8 +26,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from .models import Estudiante, Reporte, Asistencia
-from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2
+from .models import Estudiante, Reporte, Asistencia, VariableControl
+from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2, VariableControlForm
 from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
@@ -182,6 +182,64 @@ def generar_reporte_asistencia_todos(request):
         print(f"Error al generar todo el reporte: {e}")
         raise Http404("Ocurrió un error al generar los reportes.{e}")
 
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def editar_variable_control(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    variable = get_object_or_404(VariableControl, pk=1)
+    if request.method == 'POST':
+        form = VariableControlForm(request.POST, instance=variable)
+        if form.is_valid():
+            form.save()
+            return redirect('editar_variable_control')
+    else:
+        form = VariableControlForm(instance=variable)
+
+    # Diccionario de nombres personalizados
+    field_labels = {
+        'Rm_Pre': 'Raz. Matemático', 'Rv_Pre': 'Raz. Verbal', 'Ar_Pre': 'Aritmética',
+        'Al_Pre': 'Álgebra', 'Geom_Pre': 'Geometría', 'Trig_Pre': 'Trigonometría',
+        'Fi_Pre': 'Física', 'Qui_Pre': 'Química', 'Bio_Pre': 'Biología',
+        'Le_Pre': 'Lenguaje', 'Lit_Pre': 'Literatura', 'Hi_Pre': 'Historia',
+        'Geog_Pre': 'Geografía', 'Fil_Pre': 'Filosofía', 'Psi_Pre': 'Psicología',
+        'Ec_Pre': 'Economía',
+
+        'Rm_Sem': 'Raz. Matemático', 'Rv_Sem': 'Raz. Verbal', 'Ar_Sem': 'Aritmética',
+        'Al_Sem': 'Álgebra', 'Geom_Sem': 'Geometría', 'Trig_Sem': 'Trigonometría',
+        'Fi_Sem': 'Física', 'Qui_Sem': 'Química', 'Bio_Sem': 'Biología',
+        'Le_Sem': 'Lenguaje', 'Lit_Sem': 'Literatura', 'Hi_Sem': 'Historia',
+        'Geog_Sem': 'Geografía', 'Fil_Sem': 'Filosofía', 'Psi_Sem': 'Psicología',
+        'Ec_Sem': 'Economía',
+
+        'EntradaManana': 'Entrada Mañana', 'SalidaManana': 'Salida Mañana',
+        'EntradaTarde': 'Entrada Tarde', 'SalidaTarde': 'Salida Tarde',
+        'EntradaAmanecida': 'Entrada Amanecida', 'SalidaAmanecida': 'Salida Amanecida',
+    }
+
+    preguntas_pre = [
+        'Rm_Pre', 'Rv_Pre', 'Ar_Pre', 'Al_Pre', 'Geom_Pre', 'Trig_Pre',
+        'Fi_Pre', 'Qui_Pre', 'Bio_Pre', 'Le_Pre', 'Lit_Pre', 'Hi_Pre',
+        'Geog_Pre', 'Fil_Pre', 'Psi_Pre', 'Ec_Pre'
+    ]
+    preguntas_sem = [
+        'Rm_Sem', 'Rv_Sem', 'Ar_Sem', 'Al_Sem', 'Geom_Sem', 'Trig_Sem',
+        'Fi_Sem', 'Qui_Sem', 'Bio_Sem', 'Le_Sem', 'Lit_Sem', 'Hi_Sem',
+        'Geog_Sem', 'Fil_Sem', 'Psi_Sem', 'Ec_Sem'
+    ]
+    horarios = [
+        'EntradaManana', 'SalidaManana', 'EntradaTarde',
+        'SalidaTarde', 'EntradaAmanecida', 'SalidaAmanecida'
+    ]
+
+    return render(request, 'editar_variable_control.html', {
+        'base_template': base_template,
+        'form': form,
+        'preguntas_pre': preguntas_pre,
+        'preguntas_sem': preguntas_sem,
+        'horarios': horarios,
+        'field_labels': field_labels,
+    })
 
 
 def generar_reporte_asistencia_imagen(estudiante, asistencias):
@@ -460,6 +518,7 @@ def generar_imagenes_reportes_por_fecha_respaldo(request, fecha):
     return redirect('seleccionar_fecha_generacion')
 
 @login_required
+@estudiante_tipo_requerido(['administrador'])
 def generar_reporte(request):
     usuario_actual = request.user
     try:
@@ -1195,6 +1254,7 @@ dias_semana = {
 }
 
 @login_required
+@datos_actualizados_requerido('actualizar_datos')
 def ver_asistencias(request):
     estudiante = request.user
     base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
@@ -1233,6 +1293,7 @@ def ver_asistencias(request):
     return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
 
 
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def cargar_asistencias(request):
@@ -1265,40 +1326,63 @@ def cargar_asistencias(request):
                     except Exception as e:
                         messages.warning(request, f"Error procesando fila: {str(e)}")
 
-                for (estudiante, fecha), marcas in marcas_por_estudiante_fecha.items():
-                    # Separar en horarios de mañana y tarde
-                    manana = [m for m in marcas if m[0].time() <= time(15, 0)]
-                    tarde = [m for m in marcas if m[0].time() > time(16, 0)]
+                # Obtener los horarios desde la base de datos
+                config = VariableControl.objects.get(ID_Variable=1)
 
+                HoraEntradaManana = config.EntradaManana
+                HoraSalidaManana = config.SalidaManana
+                HoraEntradaTarde = config.EntradaTarde
+                HoraSalidaTarde = config.SalidaTarde
+                HoraEntradaAmanecida = config.EntradaAmanecida
+                HoraSalidaAmanecida = config.SalidaAmanecida
+
+                for (estudiante, fecha), marcas in marcas_por_estudiante_fecha.items():
                     registros = []
 
+                    # Separar marcas por turno
+                    manana = [m for m in marcas if HoraEntradaManana <= m[0].time() <= HoraSalidaManana]
+                    tarde = [m for m in marcas if HoraEntradaTarde <= m[0].time() <= HoraSalidaTarde]
+                    amanecida = [m for m in marcas if HoraEntradaAmanecida <= m[0].time() <= HoraSalidaAmanecida]
+
+                    # Mañana
                     if manana:
-                        entrada_manana = min(manana, key=lambda x: x[0])
-                        salida_manana = max(manana, key=lambda x: x[0])
-                        if entrada_manana[0] != salida_manana[0]:
-                            registros.append(entrada_manana)
-                            registros.append(salida_manana)
+                        entrada = min(manana, key=lambda x: x[0])
+                        salida = max(manana, key=lambda x: x[0])
+                        if entrada[0] != salida[0]:
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Mañana"))
+                            registros.append((salida[0], "PRESENCIAL", "Salida Mañana"))
                         else:
-                            registros.append(entrada_manana)
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Mañana"))
 
+                    # Tarde
                     if tarde:
-                        entrada_tarde = min(tarde, key=lambda x: x[0])
-                        salida_tarde = max(tarde, key=lambda x: x[0])
-                        if entrada_tarde[0] != salida_tarde[0]:
-                            registros.append(entrada_tarde)
-                            registros.append(salida_tarde)
+                        entrada = min(tarde, key=lambda x: x[0])
+                        salida = max(tarde, key=lambda x: x[0])
+                        if entrada[0] != salida[0]:
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Tarde"))
+                            registros.append((salida[0], "PRESENCIAL", "Salida Tarde"))
                         else:
-                            registros.append(entrada_tarde)
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Tarde"))
 
-                    for marca_datetime, modalidad in registros:
-                        hora = marca_datetime.strftime("%H:%M")
+                    # Amanecida
+                    if amanecida:
+                        entrada = min(amanecida, key=lambda x: x[0])
+                        salida = max(amanecida, key=lambda x: x[0])
+                        if entrada[0] != salida[0]:
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Amanecida"))
+                            registros.append((salida[0], "PRESENCIAL", "Salida Amanecida"))
+                        else:
+                            registros.append((entrada[0], "PRESENCIAL", "Entrada Amanecida"))
+
+                    # Guardar registros
+                    for marca_datetime, modalidad, observacion in registros:
                         Asistencia.objects.create(
                             KK_usuario=estudiante,
                             Fecha=fecha,
-                            Hora=hora,
-                            Modalidad=modalidad
+                            Hora=marca_datetime.strftime("%H:%M"),
+                            Modalidad=modalidad,
+                            Observacion=observacion
                         )
-
                 messages.success(request, "Datos cargados exitosamente.")
                 return redirect('subir_asistencia')
 

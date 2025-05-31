@@ -1,13 +1,9 @@
 from django import forms
-from .models import Estudiante, Asistencia
+from .models import Estudiante, Asistencia, VariableControl
 
 class LoginForm(forms.Form):
     usuario = forms.CharField(label="Usuario")
     contraseña = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
-
-
-# forms.py
-from django import forms
 
 class CargarExcelFormReporte(forms.Form):
     NIVEL_CHOICES = [
@@ -95,3 +91,17 @@ class AsistenciaForm2(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Solo incluir estudiantes con tipo_estudiante activo
         self.fields['KK_usuario'].queryset = Estudiante.objects.filter(tipo_estudiante__iexact='estudiante')
+
+class VariableControlForm(forms.ModelForm):
+    class Meta:
+        model = VariableControl
+        fields = '__all__'
+        widgets = {
+            'EntradaManana': forms.TimeInput(attrs={'type': 'time'}),
+            'SalidaManana': forms.TimeInput(attrs={'type': 'time'}),
+            'EntradaTarde': forms.TimeInput(attrs={'type': 'time'}),
+            'SalidaTarde': forms.TimeInput(attrs={'type': 'time'}),
+            'EntradaAmanecida': forms.TimeInput(attrs={'type': 'time'}),
+            'SalidaAmanecida': forms.TimeInput(attrs={'type': 'time'}),
+        }
+        

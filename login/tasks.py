@@ -16,46 +16,6 @@ cursos_pre = [
             "Literatura", "Historia", "Geografía", "Filosofía", "Psicología", "Economía"
         ]
 
-preguntas_pre = {
-            "Razonamiento Verbal": 15,
-            "Razonamiento Matemático": 15,
-            "Aritmética": 5,
-            "Álgebra": 5,
-            "Geometría": 4,
-            "Trigonometría": 4,
-            "Física": 5,
-            "Química": 5,
-            "Biología": 9,
-            "Lenguaje": 6,
-            "Literatura": 6,
-            "Historia": 3,
-            "Geografía": 2,
-            "Filosofía": 2,
-            "Psicología": 2,
-            "Economía": 2,
-        }
-
-
-preguntas_semillero = {
-            "Razonamiento Verbal": 10,
-            "Razonamiento Matemático": 10,
-            "Aritmética": 5,
-            "Álgebra": 5,
-            "Geometría": 0,
-            "Trigonometría": 0,
-            "Física": 0,
-            "Química": 0,
-            "Biología": 0,
-            "Lenguaje": 0,
-            "Literatura": 5,
-            "Historia": 0,
-            "Geografía": 0,
-            "Filosofía": 0,
-            "Psicología": 0,
-            "Economía": 0,
-        }
-
-
 @shared_task
 def generar_todo_reporte_task():
     try:
@@ -79,7 +39,8 @@ def generar_todo_reporte_task():
             # Cursos y preguntas por curso según nivel
             nivel = reportes[0].nivel
             cursos = cursos_pre
-            preguntas_por_curso = preguntas_semillero if nivel == 30 else preguntas_pre
+            preguntas_por_curso = obtener_preguntas_por_curso(nivel)
+
 
             datos_por_curso = {curso: [] for curso in cursos}
 
@@ -235,7 +196,7 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
                 datos = reporte.obtener_datos()
                 nivel = reporte.nivel
 
-                preguntas_por_curso = preguntas_semillero if nivel == 30 else preguntas_pre
+                preguntas_por_curso = obtener_preguntas_por_curso(nivel)
 
                 carpeta_usuario = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
                 os.makedirs(carpeta_usuario, exist_ok=True)
@@ -281,3 +242,33 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
 
     except Exception as e:
         return f"Error generando imágenes: {str(e)}"
+
+def obtener_preguntas_por_curso(nivel):
+    from login.models import VariableControl
+
+    try:
+        v = VariableControl.objects.get(ID_Variable=1)
+    except VariableControl.DoesNotExist:
+        return {}
+
+    # Estructura: curso → cantidad según nivel
+    cursos = {
+        "Razonamiento Verbal": v.Rv_Sem if nivel == 30 else v.Rv_Pre,
+        "Razonamiento Matemático": v.Rm_Sem if nivel == 30 else v.Rm_Pre,
+        "Aritmética": v.Ar_Sem if nivel == 30 else v.Ar_Pre,
+        "Álgebra": v.Al_Sem if nivel == 30 else v.Al_Pre,
+        "Geometría": v.Geom_Sem if nivel == 30 else v.Geom_Pre,
+        "Trigonometría": v.Trig_Sem if nivel == 30 else v.Trig_Pre,
+        "Física": v.Fi_Sem if nivel == 30 else v.Fi_Pre,
+        "Química": v.Qui_Sem if nivel == 30 else v.Qui_Pre,
+        "Biología": v.Bio_Sem if nivel == 30 else v.Bio_Pre,
+        "Lenguaje": v.Le_Sem if nivel == 30 else v.Le_Pre,
+        "Literatura": v.Lit_Sem if nivel == 30 else v.Lit_Pre,
+        "Historia": v.Hi_Sem if nivel == 30 else v.Hi_Pre,
+        "Geografía": v.Geog_Sem if nivel == 30 else v.Geog_Pre,
+        "Filosofía": v.Fil_Sem if nivel == 30 else v.Fil_Pre,
+        "Psicología": v.Psi_Sem if nivel == 30 else v.Psi_Pre,
+        "Economía": v.Ec_Sem if nivel == 30 else v.Ec_Pre,
+    }
+
+    return cursos

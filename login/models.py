@@ -134,6 +134,7 @@ class Asistencia(models.Model):
     Modalidad = models.CharField(max_length=15, default="PRESENCIAL")
 
 class VariableControl(models.Model):
+    ID_Variable = models.AutoField(primary_key=True)
     #Cantidad de preguntas para preuniversitario
     Rm_Pre = models.IntegerField(default=15)
     Rv_Pre = models.IntegerField(default= 15)
@@ -169,5 +170,11 @@ class VariableControl(models.Model):
     Psi_Sem = models.IntegerField(default=0)
     Ec_Sem = models.IntegerField(default=0)
     #Horarios de entrada y salida
+    EntradaManana = models.TimeField(default=(7,0))
+    SalidaManana = models.TimeField(default=(15,0))
+    EntradaTarde = models.TimeField(default=(15,1))
+    SalidaTarde = models.TimeField(default=(19,59))
+    EntradaAmanecida = models.TimeField(default=(20,0))
+    SalidaAmanecida = models.TimeField(default=(6,59))
        
             
