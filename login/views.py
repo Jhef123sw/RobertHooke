@@ -42,6 +42,97 @@ from datetime import datetime
 from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task
 
 
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def listar_tutores(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    tutores = Estudiante.objects.filter(tipo_estudiante='tutor')
+    return render(request, 'listar_tutores.html', {
+        'tutores': tutores,
+        'base_template': base_template,
+    })
+
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def crear_tutor(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        usuario = request.POST.get('usuario')
+        contraseña = request.POST.get('contraseña')
+
+        if Estudiante.objects.filter(usuario=usuario).exists():
+            return render(request, 'crear_tutor.html', {
+                'mensaje': 'El nombre de usuario ya existe.'
+            })
+
+        Estudiante.objects.create(
+            nombre=nombre,
+            usuario=usuario,
+            contraseña=contraseña,
+            tipo_estudiante='tutor',
+            is_active=True,
+            is_staff=False,
+        )
+        return render(request, 'listar_tutores.html', {
+            'base_template': base_template,
+            'mensaje': 'Tutor creado exitosamente.'
+        })
+
+    return render(request, 'crear_tutor.html', {
+        'base_template': base_template,
+    })
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def asignar_tutores(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    tutores = Estudiante.objects.filter(tipo_estudiante='tutor')
+    print(tutores)
+    estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante', tutor__isnull=True)
+    print(tutores)
+    return render(request, 'asignar_tutores.html', {
+        'base_template': base_template,
+        'tutores': tutores,
+        'estudiantes': estudiantes,
+    })
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def obtener_estudiantes_tutor(request, tutor_id):
+    tutor = get_object_or_404(Estudiante, pk=tutor_id)
+    estudiantes = tutor.tutorados.all().values('ID_Estudiante', 'nombre')
+    return JsonResponse(list(estudiantes), safe=False)
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def asignar_estudiante(request):
+    estudiante_id = request.POST.get('estudiante_id')
+    tutor_id = request.POST.get('tutor_id')
+    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+    tutor = get_object_or_404(Estudiante, pk=tutor_id)
+    estudiante.tutor = tutor
+    estudiante.save()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def desasignar_estudiante(request):
+    estudiante_id = request.POST.get('estudiante_id')
+    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+    estudiante.tutor = None
+    estudiante.save()
+    return JsonResponse({'ok': True})
+
+
 #Descargas
 
 @login_required
@@ -182,6 +273,9 @@ def generar_reporte_asistencia_todos(request):
         print(f"Error al generar todo el reporte: {e}")
         raise Http404("Ocurrió un error al generar los reportes.{e}")
 
+
+
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def editar_variable_control(request):
@@ -191,7 +285,53 @@ def editar_variable_control(request):
     if request.method == 'POST':
         form = VariableControlForm(request.POST, instance=variable)
         if form.is_valid():
+            posiciones = [
+                (556, 655), (1320, 655), (556, 893), (1320, 893), (556, 1133), (1320, 1131), (556, 1370), (1320, 1370),
+                (556, 1612), (1320, 1614), (556, 1853), (1320, 1853), (616, 2097), (1365, 2097), (556, 2333), (1320, 2334)
+            ]
+
+            def generar_plantilla(cantidades, output_filename):
+                plantilla_path = os.path.join(settings.BASE_DIR, "login/static/img/plantilla-plantilla-notas.png")
+                #plantilla_path = os.path.join(settings.BASE_DIR, 'login', 'static', 'img', 'plantilla-plantilla-notas.png')
+                salida_path = os.path.join(settings.BASE_DIR, "login/static/img/", output_filename)
+                
+                imagen = Image.open(plantilla_path)
+                try:
+                    fuente = ImageFont.truetype("arial.ttf", 22)
+                except:
+                    fuente = ImageFont.load_default()
+
+                draw = ImageDraw.Draw(imagen)
+                for valor, posicion in zip(cantidades, posiciones):
+                    draw.text(posicion, str(valor), fill="white", font=fuente)
+
+                imagen.save(salida_path)
+
+            # Obtener instancia guardada de VariableControl
+            variable_control = form.save(commit=False)
+
+            # Obtener cantidades
+            Cantidad_Preguntas_Pre = [
+                variable_control.Ar_Pre, variable_control.Bio_Pre, variable_control.Ec_Pre, variable_control.Fil_Pre,
+                variable_control.Fi_Pre, variable_control.Geog_Pre, variable_control.Geom_Pre, variable_control.Hi_Pre,
+                variable_control.Le_Pre, variable_control.Lit_Pre, variable_control.Psi_Pre, variable_control.Qui_Pre,
+                variable_control.Rm_Pre, variable_control.Rv_Pre, variable_control.Trig_Pre, variable_control.Al_Pre
+            ]
+
+            Cantidad_Preguntas_Sem = [
+                variable_control.Ar_Sem, variable_control.Bio_Sem, variable_control.Ec_Sem, variable_control.Fil_Sem,
+                variable_control.Fi_Sem, variable_control.Geog_Sem, variable_control.Geom_Sem, variable_control.Hi_Sem,
+                variable_control.Le_Sem, variable_control.Lit_Sem, variable_control.Psi_Sem, variable_control.Qui_Sem,
+                variable_control.Rm_Sem, variable_control.Rv_Sem, variable_control.Trig_Sem, variable_control.Al_Sem
+            ]
+            # Generar imágenes
+            generar_plantilla(Cantidad_Preguntas_Pre, 'plantilla-notas-pre.png')
+            generar_plantilla(Cantidad_Preguntas_Sem, 'plantilla-notas-semillas.png')
+
+            # Guardar finalmente el formulario
+            variable_control.save()
             form.save()
+            messages.success(request, "Valores y plantillas actualizadas")
             return redirect('editar_variable_control')
     else:
         form = VariableControlForm(instance=variable)
@@ -821,9 +961,11 @@ def reportes_observaciones(request):
 def reportes_puesto_puntaje(request):
     usuario_actual = request.user
     if usuario_actual.tipo_estudiante == "administrador":  
-        base_template = "layouts/base.html"
+        base_template = "layouts/base.html"  # Plantilla para administrador
+    elif usuario_actual.tipo_estudiante == "estudiante":
+        base_template = "layouts/base2.html"  # Plantilla para estudiante regular
     else:
-        base_template = "layouts/base2.html"
+        base_template = "layouts/base_tutor.html"
 
     reportes = Reporte.objects.filter(KK_usuario=usuario_actual).order_by('fecha_de_examen')
 
@@ -1293,10 +1435,219 @@ def ver_asistencias(request):
     return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
 
 
-
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def cargar_asistencias(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+
+    if request.method == 'POST':
+        form = CargarExcelForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo_excel = request.FILES['archivo_excel']
+            try:
+                df = pd.read_excel(archivo_excel)
+                columnas_esperadas = ['usuario', 'marca', 'modalidad']
+                if not all(col in df.columns for col in columnas_esperadas):
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario', 'marca' y 'modalidad'")
+                    return redirect('subir_asistencia')
+
+                marcas_por_estudiante_fecha = defaultdict(list)
+
+                for _, fila in df.iterrows():
+                    try:
+                        estudiante = Estudiante.objects.get(usuario=fila['usuario'])
+                        marca_datetime = pd.to_datetime(fila['marca'])
+                        fecha = marca_datetime.date()
+                        modalidad = fila.get('modalidad')
+                        marcas_por_estudiante_fecha[(estudiante, fecha)].append((marca_datetime, modalidad))
+                    except Estudiante.DoesNotExist:
+                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
+                    except Exception as e:
+                        messages.warning(request, f"Error procesando fila: {str(e)}")
+
+                config = VariableControl.objects.get(ID_Variable=1)
+
+                for (estudiante, fecha), marcas in marcas_por_estudiante_fecha.items():
+                    franjas = {
+                        'mañana': (config.EntradaManana, config.SalidaManana),
+                        'tarde': (config.EntradaTarde, config.SalidaTarde),
+                        'amanecida': (config.EntradaAmanecida, config.SalidaAmanecida),
+                    }
+
+                    for franja_nombre, (hora_inicio, hora_fin) in franjas.items():
+                        marcas_franja = [m for m in marcas if hora_inicio <= m[0].time() <= hora_fin]
+
+                        if not marcas_franja:
+                            continue
+
+                        min_marca = min(marcas_franja, key=lambda x: x[0])
+                        max_marca = max(marcas_franja, key=lambda x: x[0])
+
+                        # Traer registros existentes de esta franja
+                        registros_existentes = Asistencia.objects.filter(
+                            KK_usuario=estudiante,
+                            Fecha=fecha,
+                            Hora__gte=hora_inicio.strftime("%H:%M"),
+                            Hora__lte=hora_fin.strftime("%H:%M")
+                        ).order_by("Hora")
+
+                        # Si no hay registros aún
+                        if registros_existentes.count() < 2:
+                            if registros_existentes.filter(Hora=min_marca[0].strftime("%H:%M")).exists() == False:
+                                Asistencia.objects.create(
+                                    KK_usuario=estudiante,
+                                    Fecha=fecha,
+                                    Hora=min_marca[0].strftime("%H:%M"),
+                                    Modalidad=min_marca[1]
+                                )
+                            if min_marca != max_marca and registros_existentes.filter(Hora=max_marca[0].strftime("%H:%M")).exists() == False:
+                                Asistencia.objects.create(
+                                    KK_usuario=estudiante,
+                                    Fecha=fecha,
+                                    Hora=max_marca[0].strftime("%H:%M"),
+                                    Modalidad=max_marca[1]
+                                )
+                        else:
+                            # Ya hay dos registros. Verificar si reemplazar alguno.
+                            hora_min_existente = min(registros_existentes, key=lambda r: r.Hora)
+                            hora_max_existente = max(registros_existentes, key=lambda r: r.Hora)
+
+                            nueva_hora_min = min_marca[0].strftime("%H:%M")
+                            nueva_hora_max = max_marca[0].strftime("%H:%M")
+
+                            # Reemplazar min si la nueva hora es menor
+                            if nueva_hora_min < hora_min_existente.Hora:
+                                hora_min_existente.delete()
+                                Asistencia.objects.create(
+                                    KK_usuario=estudiante,
+                                    Fecha=fecha,
+                                    Hora=nueva_hora_min,
+                                    Modalidad=min_marca[1]
+                                )
+
+                            # Reemplazar max si la nueva hora es mayor
+                            if nueva_hora_max > hora_max_existente.Hora:
+                                hora_max_existente.delete()
+                                Asistencia.objects.create(
+                                    KK_usuario=estudiante,
+                                    Fecha=fecha,
+                                    Hora=nueva_hora_max,
+                                    Modalidad=max_marca[1]
+                                )
+
+
+                messages.success(request, "Datos cargados exitosamente.")
+                return redirect('subir_asistencia')
+
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo: {str(e)}")
+                return redirect('subir_asistencia')
+    else:
+        form = CargarExcelForm()
+
+    return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def cargar_asistencias_respalds(request):
+    estudiante = request.user
+    base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
+
+    if request.method == 'POST':
+        form = CargarExcelForm(request.POST, request.FILES)
+        if form.is_valid():
+            archivo_excel = request.FILES['archivo_excel']
+            try:
+                df = pd.read_excel(archivo_excel)
+                columnas_esperadas = ['usuario', 'marca', 'modalidad']
+                if not all(col in df.columns for col in columnas_esperadas):
+                    messages.error(request, "El archivo Excel no tiene las columnas esperadas: 'usuario', 'marca' y 'modalidad'")
+                    return redirect('subir_asistencia')
+
+                # Agrupar marcas por usuario y fecha
+                marcas_por_estudiante_fecha = defaultdict(list)
+
+                for _, fila in df.iterrows():
+                    try:
+                        estudiante = Estudiante.objects.get(usuario=fila['usuario'])
+                        marca_datetime = pd.to_datetime(fila['marca'])
+                        fecha = marca_datetime.date()
+                        modalidad = fila.get('modalidad')
+                        marcas_por_estudiante_fecha[(estudiante, fecha)].append((marca_datetime, modalidad))
+                    except Estudiante.DoesNotExist:
+                        messages.warning(request, f"El usuario '{fila['usuario']}' no existe en la base de datos.")
+                    except Exception as e:
+                        messages.warning(request, f"Error procesando fila: {str(e)}")
+
+                config = VariableControl.objects.get(ID_Variable=1)
+
+                HoraEntradaManana = config.EntradaManana
+                HoraSalidaManana = config.SalidaManana
+                HoraEntradaTarde = config.EntradaTarde
+                HoraSalidaTarde = config.SalidaTarde
+                HoraEntradaAmanecida = config.EntradaAmanecida
+                HoraSalidaAmanecida = config.SalidaAmanecida
+
+                for (estudiante, fecha), marcas in marcas_por_estudiante_fecha.items():
+                    # Separar en horarios de manana, tarde y amanecida
+                    manana = [m for m in marcas if HoraEntradaManana <= m[0].time() <= HoraSalidaManana]
+                    tarde = [m for m in marcas if HoraEntradaTarde <= m[0].time() <= HoraSalidaTarde]
+                    amanecida = [m for m in marcas if HoraEntradaAmanecida <= m[0].time() <= HoraSalidaAmanecida]
+
+                    registros = []
+
+                    if manana:
+                        entrada_manana = min(manana, key=lambda x: x[0])
+                        salida_manana = max(manana, key=lambda x: x[0])
+                        if entrada_manana[0] != salida_manana[0]:
+                            registros.append(entrada_manana)
+                            registros.append(salida_manana)
+                        else:
+                            registros.append(entrada_manana)
+
+                    if tarde:
+                        entrada_tarde = min(tarde, key=lambda x: x[0])
+                        salida_tarde = max(tarde, key=lambda x: x[0])
+                        if entrada_tarde[0] != salida_tarde[0]:
+                            registros.append(entrada_tarde)
+                            registros.append(salida_tarde)
+                        else:
+                            registros.append(entrada_tarde)
+                    
+                    if amanecida:
+                        entrada_amanecida = min(amanecida, key=lambda x: x[0])
+                        salida_amanecida = max(amanecida, key=lambda x: x[0])
+                        if entrada_amanecida[0] != salida_amanecida[0]:
+                            registros.append(entrada_amanecida)
+                            registros.append(salida_amanecida)
+                        else:
+                            registros.append(entrada_amanecida)
+
+                    for marca_datetime, modalidad in registros:
+                        hora = marca_datetime.strftime("%H:%M")
+                        Asistencia.objects.create(
+                            KK_usuario=estudiante,
+                            Fecha=fecha,
+                            Hora=hora,
+                            Modalidad=modalidad
+                        )
+
+                messages.success(request, "Datos cargados exitosamente.")
+                return redirect('subir_asistencia')
+
+            except Exception as e:
+                messages.error(request, f"Error al procesar el archivo: {str(e)}")
+                return redirect('subir_asistencia')
+    else:
+        form = CargarExcelForm()
+
+    return render(request, "subir_asistencia.html", {"base_template": base_template, "form": form})
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def cargar_asistencias_respaldo_TMA(request):
     estudiante = request.user
     base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
 
@@ -1349,30 +1700,30 @@ def cargar_asistencias(request):
                         entrada = min(manana, key=lambda x: x[0])
                         salida = max(manana, key=lambda x: x[0])
                         if entrada[0] != salida[0]:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Mañana"))
-                            registros.append((salida[0], "PRESENCIAL", "Salida Mañana"))
+                            registros.append((entrada[0]))
+                            registros.append((salida[0]))
                         else:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Mañana"))
+                            registros.append((entrada[0]))
 
                     # Tarde
                     if tarde:
                         entrada = min(tarde, key=lambda x: x[0])
                         salida = max(tarde, key=lambda x: x[0])
                         if entrada[0] != salida[0]:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Tarde"))
-                            registros.append((salida[0], "PRESENCIAL", "Salida Tarde"))
+                            registros.append((entrada[0]))
+                            registros.append((salida[0]))
                         else:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Tarde"))
+                            registros.append((entrada[0]))
 
                     # Amanecida
                     if amanecida:
                         entrada = min(amanecida, key=lambda x: x[0])
                         salida = max(amanecida, key=lambda x: x[0])
                         if entrada[0] != salida[0]:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Amanecida"))
-                            registros.append((salida[0], "PRESENCIAL", "Salida Amanecida"))
+                            registros.append((entrada[0]))
+                            registros.append((salida[0]))
                         else:
-                            registros.append((entrada[0], "PRESENCIAL", "Entrada Amanecida"))
+                            registros.append((entrada[0]))
 
                     # Guardar registros
                     for marca_datetime, modalidad, observacion in registros:
@@ -1719,8 +2070,10 @@ def home(request):
     estudiante = request.user
     if estudiante.tipo_estudiante == "administrador":  
         base_template = "layouts/base.html"  # Plantilla para administrador
-    else:
+    elif estudiante.tipo_estudiante == "estudiante":
         base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    else:
+        base_template = "layouts/base_tutor.html"
 
     return render(request, "home.html", {"base_template": base_template})
 
@@ -2213,7 +2566,7 @@ def cargar_asistencias_respaldo(request):
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
-def cargar_asistencias_respaldo(request):
+def cargar_asistencias_respaldo_2(request):
     estudiante = request.user
     base_template = "layouts/base.html" if estudiante.tipo_estudiante == "administrador" else "layouts/base2.html"
 

@@ -1,7 +1,15 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor
 
 urlpatterns = [
+    #tutores
+    path('asignar-tutores/', asignar_tutores, name='asignar_tutores'),
+    path('obtener-estudiantes/<int:tutor_id>/', obtener_estudiantes_tutor, name='obtener_estudiantes_tutor'),
+    path('asignar-estudiante/', asignar_estudiante, name='asignar_estudiante'),
+    path('desasignar-estudiante/', desasignar_estudiante, name='desasignar_estudiante'),
+    path('tutores/', listar_tutores, name='listar_tutores'),
+    path('crear-tutor/', crear_tutor, name='crear_tutor'),
+
     path('', reportes_puesto_puntaje, name='home'),
     path('actualizar_datos/', actualizar_datos, name='actualizar_datos'),
     path('cargar_asistencias/', cargar_asistencias, name='subir_asistencia'),

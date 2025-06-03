@@ -1,0 +1,155 @@
+<!-- templates/asignar_tutores.html -->
+{% extends base_template %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asignar Tutores</title>
+    <link rel="stylesheet" href="{% static 'css/asignar_tutores.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div class="scroll-box" id="tutores">
+            <h3>Tutores</h3>
+            <ul>
+                {% for tutor in tutores %}
+                    <li data-id="{{ tutor.ID_Estudiante }}" class="tutor" style="color: black;">{{ tutor.nombre }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="scroll-box" id="estudiantes">
+            <h3>
+                Alumnos
+                <input type="checkbox" id="checkAllEstudiantes" />
+            </h3>
+            <input type="text" id="busqueda-estudiantes" placeholder="Buscar alumno..." class="busqueda-box" />
+            <ul style="color: black;">
+                {% for estudiante in estudiantes %}
+                    <li data-id="{{ estudiante.ID_Estudiante }}" class="estudiante" draggable="true">
+                        <input type="checkbox" class="select-estudiante" />
+                        {{ estudiante.usuario }} {{ estudiante.nombre }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+
+        <div class="scroll-box" id="alumnos-por-tutor">
+            <h3>Alumnos para <span id="nombre-tutor">selecciona un tutor</span>
+                <input type="checkbox" id="checkAllAsignados" />
+            </h3>
+            <ul id="lista-alumnos-tutor" style="color: black;"></ul>
+        </div>
+    </div>
+
+    <script>
+        function mostrarMarcadorSiVacio() {
+            const lista = document.getElementById('lista-alumnos-tutor');
+            if (lista.children.length === 0) {
+                const placeholder = document.createElement('li');
+                placeholder.textContent = 'Arrastra alumnos aquí';
+                placeholder.style.fontStyle = 'italic';
+                placeholder.style.color = '#888';
+                placeholder.style.pointerEvents = 'none';
+                placeholder.className = 'placeholder';
+                lista.appendChild(placeholder);
+            } else {
+                const placeholder = lista.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+            }
+        }
+
+        let tutorSeleccionadoId = null;
+
+        document.querySelectorAll('.tutor').forEach(tutor => {
+            tutor.addEventListener('click', function () {
+                tutorSeleccionadoId = this.dataset.id;
+                document.getElementById('nombre-tutor').innerText = this.innerText;
+                fetch(`/obtener-estudiantes/${tutorSeleccionadoId}/`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const lista = document.getElementById('lista-alumnos-tutor');
+                        lista.innerHTML = '';
+                        data.forEach(est => {
+                            const li = document.createElement('li');
+                            li.dataset.id = est.ID_Estudiante;
+                            li.draggable = true;
+                            li.className = 'estudiante';
+                            li.innerHTML = `<input type="checkbox" class="select-asignado" /> ${est.usuario} ${est.nombre}`;
+                            lista.appendChild(li);
+                        });
+                        setCheckboxHandlers();
+                        setDragEvents();
+                    });
+            });
+        });
+
+        function setCheckboxHandlers() {
+            document.getElementById('checkAllEstudiantes')?.addEventListener('change', function () {
+                document.querySelectorAll('.select-estudiante').forEach(cb => cb.checked = this.checked);
+            });
+            document.getElementById('checkAllAsignados')?.addEventListener('change', function () {
+                document.querySelectorAll('.select-asignado').forEach(cb => cb.checked = this.checked);
+            });
+        }
+
+        function setDragEvents() {
+            document.querySelectorAll('li.estudiante').forEach(li => {
+                li.addEventListener('dragstart', e => {
+                    const selected = Array.from(document.querySelectorAll('.select-estudiante:checked, .select-asignado:checked'));
+                    const ids = selected.map(cb => cb.parentElement.dataset.id);
+                    e.dataTransfer.setData('ids', JSON.stringify(ids));
+                });
+            });
+        }
+
+        mostrarMarcadorSiVacio();
+        setCheckboxHandlers();
+        setDragEvents();
+
+        const listaGeneral = document.querySelector('#estudiantes ul');
+        const listaTutor = document.getElementById('lista-alumnos-tutor');
+
+        // Arrastrar al tutor (asignar)
+        listaTutor.addEventListener('dragover', e => e.preventDefault());
+        listaTutor.addEventListener('drop', e => {
+            e.preventDefault();
+            const ids = JSON.parse(e.dataTransfer.getData('ids'));
+            ids.forEach(id => {
+                fetch('/asignar-estudiante/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: new URLSearchParams({ estudiante_id: id, tutor_id: tutorSeleccionadoId })
+                }).then(() => location.reload());
+            });
+        });
+
+        // Arrastrar al scroll general (desasignar)
+        listaGeneral.addEventListener('dragover', e => e.preventDefault());
+        listaGeneral.addEventListener('drop', e => {
+            e.preventDefault();
+            const ids = JSON.parse(e.dataTransfer.getData('ids'));
+            ids.forEach(id => {
+                fetch('/desasignar-estudiante/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: new URLSearchParams({ estudiante_id: id })
+                }).then(() => location.reload());
+            });
+        });
+
+        document.getElementById('busqueda-estudiantes').addEventListener('input', function () {
+        const filtro = this.value.toLowerCase();
+        document.querySelectorAll('#estudiantes ul li').forEach(li => {
+            const texto = li.textContent.toLowerCase();
+            li.style.display = texto.includes(filtro) ? 'flex' : 'none';
+        });
+    });
+    </script>
+
+
+</body>
+</html>
+{% endblock %}

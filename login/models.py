@@ -3,8 +3,9 @@ from django.db import models
 
 class Estudiante(models.Model):
     PERMISOS_USUARIO = [
-        ('estudiante', 'Estudiante'), ('administrador', 'Administrador'),
+        ('estudiante', 'Estudiante'), ('administrador', 'Administrador'), ('tutor', 'Tutor')
     ]
+    tutor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='tutorados')
     DATOS_ACTUALIZADOS = [
     ('actualizado', 'Actualizado'),
     ('desactualizado', 'Desactualizado')
@@ -12,7 +13,7 @@ class Estudiante(models.Model):
     GRADO_ESTUDIANTE = [
         (1, '1° de Secundaria'),
         (2, '2° de Secundaria'),
-        (3, '3° de Secundaria'),
+        (3, '3° de Secundaria'),   
         (4, '4° de Secundaria'),
         (5, '5° de Secundaria'),
         (6, 'Egresado'),

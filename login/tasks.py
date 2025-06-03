@@ -21,11 +21,12 @@ def generar_todo_reporte_task():
     try:
         estudiantes = Estudiante.objects.filter(reporte_actualizado=True)
         ruta_guardar = os.path.join(settings.MEDIA_ROOT, 'reportes/simulacros')
-        plantilla_path = os.path.join(settings.BASE_DIR, "login/static/img/plantilla-notas.png")
-
-        if not os.path.exists(plantilla_path):
-            raise FileNotFoundError("No se encontró la plantilla del reporte.")
-
+        plantilla_pre = os.path.join(settings.BASE_DIR, "login/static/img/plantilla-notas-pre.png")
+        plantilla_sem = os.path.join(settings.BASE_DIR, "login/static/img/plantilla-notas-semillas.png")
+        if not os.path.exists(plantilla_pre):
+            raise FileNotFoundError("No se encontró la plantilla del reporte para pre.")
+        elif not os.path.exists(plantilla_sem):
+            raise FileNotFoundError("No se encontró la plantilla del reporte para semillero.")
         for estudiante in estudiantes:
             reportes_qs = estudiante.reportes.all().order_by('-fecha_de_examen')
             if not reportes_qs.exists():
@@ -87,7 +88,10 @@ def generar_todo_reporte_task():
             ruta_grafico_puntaje = generar_grafico_puntaje_barras(fechas, puntajes)
 
             # Crear imagen final
-            plantilla = Image.open(plantilla_path)
+            if nivel == 30:
+                plantilla = Image.open(plantilla_sem)
+            else:
+                plantilla = Image.open(plantilla_pre)
             draw = ImageDraw.Draw(plantilla)
             fuente = ImageFont.truetype("arial.ttf", 40)
             draw.text((720, 124), estudiante.nombre, fill="black", font=fuente)
