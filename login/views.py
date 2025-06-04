@@ -355,6 +355,9 @@ def editar_variable_control(request):
         'EntradaManana': 'Entrada Mañana', 'SalidaManana': 'Salida Mañana',
         'EntradaTarde': 'Entrada Tarde', 'SalidaTarde': 'Salida Tarde',
         'EntradaAmanecida': 'Entrada Amanecida', 'SalidaAmanecida': 'Salida Amanecida',
+
+        "Preg_Corr_Raz": 'Pregunta Correcta Raz.', "Preg_Corr_Con": 'Pregunta Correcta Con.',
+        "Preg_Inc_Raz": 'Pregunta Incorrecta Raz.', "Preg_Inc_Con": 'Pregunta Incorrecta Con.'
     }
 
     preguntas_pre = [
@@ -372,12 +375,18 @@ def editar_variable_control(request):
         'SalidaTarde', 'EntradaAmanecida', 'SalidaAmanecida'
     ]
 
+    puntajes = [
+        'Preg_Corr_Raz', 'Preg_Corr_Con', 'Preg_Inc_Raz',
+        'Preg_Inc_Con'
+    ]
+
     return render(request, 'editar_variable_control.html', {
         'base_template': base_template,
         'form': form,
         'preguntas_pre': preguntas_pre,
         'preguntas_sem': preguntas_sem,
         'horarios': horarios,
+        'puntajes': puntajes,
         'field_labels': field_labels,
     })
 

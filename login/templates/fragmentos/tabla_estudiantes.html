@@ -8,7 +8,6 @@
     <td>{{ estudiante.get_tipo_estudiante_display }}</td>
     <td>
         <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-sm btn-primary">Editar</a>
-        <a href="#" class="btn btn-sm btn-danger btn-eliminar" data-id="{{ estudiante.pk }}">Eliminar</a>
         <a href="{% url 'agregar_observacion' estudiante.pk %}" class="btn btn-sm btn-warning">Agregar Observación</a>
     </td>
 </tr>

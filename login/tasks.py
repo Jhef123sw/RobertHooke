@@ -75,8 +75,8 @@ def generar_todo_reporte_task():
                     spine.set_visible(False)
                 for barra, valor in zip(barras, y):
                     altura = barra.get_height()
-                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}', ha='center', va='bottom', fontsize=20, fontweight='bold')
-                plt.xticks(rotation=0, fontsize=10)
+                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}', ha='center', va='bottom', fontsize=15, fontweight='bold')
+                plt.xticks(rotation=0, fontsize=5)
                 ax.tick_params(axis='y', left=False, labelleft=False)
                 ax.grid(False)
                 ruta_grafico = os.path.join(ruta_carpeta, "zgrafico_puntaje.png")
@@ -120,6 +120,8 @@ def generar_todo_reporte_task():
 
             os.makedirs(ruta_guardar, exist_ok=True)
             resultado_path = os.path.join(ruta_guardar, f"{estudiante.usuario}_reporte_simulacro.png")
+            estudiante.reporte_actualizado = False
+            estudiante.save()
             plantilla.save(resultado_path)
 
         return "Reportes generados correctamente."
@@ -238,7 +240,8 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
 
                     nombre_archivo = f"{curso}_{estudiante.usuario}_{reporte.fecha_de_examen}.png".replace(" ", "_")
                     ruta_archivo = os.path.join(carpeta_usuario, nombre_archivo)
-
+                    estudiante.reporte_actualizado = False
+                    estudiante.save()
                     plt.savefig(ruta_archivo, format='png', bbox_inches='tight', facecolor='white')
                     plt.close(fig)
         

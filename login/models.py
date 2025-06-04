@@ -112,19 +112,25 @@ class Reporte(models.Model):
 
     def obtener_total_puntaje(self):
         """Calcula el puntaje total según la fórmula dada"""
-        total_correctas = sum([
-            self.Rv_1, self.Rm_1, self.Ar_1, self.Al_1, self.Ge_1, self.Tr_1,
+        total_correctas_raz = sum([
+            self.Rv_1, self.Rm_1
+        ])
+        total_correctas_con = sum([
+            self.Ar_1, self.Al_1, self.Ge_1, self.Tr_1,
             self.Fi_1, self.Qu_1, self.Bi_1, self.Le_1, self.Lit_1, self.Hi_1,
             self.Gf_1, self.Fil_1, self.Psi_1, self.Ec_1
         ])
-
-        total_incorrectas = sum([
-            self.Rv_2, self.Rm_2, self.Ar_2, self.Al_2, self.Ge_2, self.Tr_2,
+        total_incorrectas_raz = sum([
+            self.Rv_2, self.Rm_2
+        ])
+        total_incorrectas_con = sum([
+            self.Ar_2, self.Al_2, self.Ge_2, self.Tr_2,
             self.Fi_2, self.Qu_2, self.Bi_2, self.Le_2, self.Lit_2, self.Hi_2,
             self.Gf_2, self.Fil_2, self.Psi_2, self.Ec_2
         ])
+        config = VariableControl.objects.get(ID_Variable=1)
 
-        return (7 * total_correctas) - (1.5 * total_incorrectas)
+        return (config.Preg_Corr_Raz * total_correctas_raz)+(config.Preg_Corr_Con * total_correctas_con) - (config.Preg_Inc_Raz * total_incorrectas_raz) - (config.Preg_Inc_Con*total_incorrectas_con)
     
 class Asistencia(models.Model):
     ID_Reporte = models.AutoField(primary_key=True)
@@ -177,5 +183,10 @@ class VariableControl(models.Model):
     SalidaTarde = models.TimeField(default=(19,59))
     EntradaAmanecida = models.TimeField(default=(20,0))
     SalidaAmanecida = models.TimeField(default=(6,59))
+    #Valor por pregunta
+    Preg_Corr_Raz = models.FloatField(default=(8))
+    Preg_Corr_Con = models.FloatField(default=(6))
+    Preg_Inc_Raz = models.FloatField(default=(0.51))
+    Preg_Inc_Con = models.FloatField(default=(0.51))
        
             

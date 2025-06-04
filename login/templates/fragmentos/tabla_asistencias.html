@@ -19,7 +19,6 @@
     <td style="color: black;">{{ a.observacion }}</td>
     <td>
         <a href="{% url 'editar_asistencia' a.id %}" class="btn-editar">Editar</a>
-        <a href="#" class="btn-eliminar" data-id="{{ a.id }}">Eliminar</a>
     </td>
 </tr>
 {% empty %}

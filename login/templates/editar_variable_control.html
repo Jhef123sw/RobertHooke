@@ -83,6 +83,30 @@
         </div>
       </div>
 
+      <!-- Valor de preguntas Correctas e Incorrectas -->
+      <div class="col-md-4">
+        <div class="card mb-4 shadow-sm">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Valor de preguntas</h5>
+          </div>
+          <div class="card-body">
+            {% for field in form %}
+              {% if field.name in puntajes %}
+                <div class="mb-3">
+                  <label class="form-label">
+                    {{ field_labels|get_item:field.name|default:field.label }}
+                  </label>
+                  {{ field|add_class:"form-control" }}
+                  {% if field.errors %}
+                    <div class="text-danger">{{ field.errors }}</div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="text-end">
       <button type="submit" class="btn btn-primary">Guardar cambios</button>
