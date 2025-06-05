@@ -85,6 +85,7 @@ class Reporte(models.Model):
     fecha_de_examen = models.DateField()
     Observacion =models.CharField(max_length=200, default="")
     puesto = models.IntegerField()
+    reporte_actualizado = models.BooleanField(default=False)
 
     def obtener_datos(self):
         """Devuelve los datos de cada materia en un diccionario"""

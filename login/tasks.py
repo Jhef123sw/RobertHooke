@@ -71,14 +71,26 @@ def generar_todo_reporte_task():
             def generar_grafico_puntaje_barras(x, y):
                 fig, ax = plt.subplots(figsize=(6, 3))
                 barras = ax.bar(x, y, color='#DA880B')
+                
                 for spine in ax.spines.values():
                     spine.set_visible(False)
+                
                 for barra, valor in zip(barras, y):
                     altura = barra.get_height()
-                    ax.text(barra.get_x() + barra.get_width() / 2, altura + 1, f'{valor}', ha='center', va='bottom', fontsize=15, fontweight='bold')
-                plt.xticks(rotation=0, fontsize=5)
+                    ax.text(
+                        barra.get_x() + barra.get_width() / 2,
+                        altura + 1,
+                        f'{valor:.2f}',  # <- redondea a 2 decimales
+                        ha='center',
+                        va='bottom',
+                        fontsize=13,
+                        fontweight='bold'
+                    )
+                
+                plt.xticks(rotation=0, fontsize=8)
                 ax.tick_params(axis='y', left=False, labelleft=False)
                 ax.grid(False)
+                
                 ruta_grafico = os.path.join(ruta_carpeta, "zgrafico_puntaje.png")
                 fig.tight_layout()
                 fig.savefig(ruta_grafico, bbox_inches='tight')
@@ -195,8 +207,8 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
 
         ruta_base = os.path.join(settings.MEDIA_ROOT)
 
-        for estudiante in Estudiante.objects.filter(reporte_actualizado=True):
-            reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj)
+        for estudiante in Estudiante.objects.all():
+            reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj, reporte_actualizado = True)
 
             for reporte in reportes:
                 datos = reporte.obtener_datos()
@@ -226,7 +238,7 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
                                     xytext=(0, 3),
                                     textcoords="offset points",
                                     ha='center', va='bottom',
-                                    fontsize=10)
+                                    fontsize=15)
 
                     ax.set_title("")
                     ax.spines['top'].set_visible(False)

@@ -982,28 +982,28 @@ def reportes_puesto_puntaje(request):
     puestos = [reporte.puesto for reporte in reportes]
     puntajes = [reporte.obtener_total_puntaje() for reporte in reportes]
 
-    def generar_grafico(x, y, titulo, xlabel, ylabel, color, invertir_y = False):
+    def generar_grafico(x, y, titulo, xlabel, ylabel, color, invertir_y=False):
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.plot(x, y, marker='o', linestyle='-', color=color)
-        #ax.set_title(titulo)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.grid(True)
 
         if invertir_y:
             ax.invert_yaxis()
-        #    max_y = max(y)
-        #    ax.set_ylim(top=max_y - 7)
-        #else:
-        #    max_y = max(y)
-        #    ax.set_ylim(top=max_y + 0.1)
+
+        # Mostrar valores con dos decimales sobre los puntos
         for i, valor in enumerate(y):
-            ax.annotate(str(valor), (x[i], y[i]),
+            ax.annotate(f'{valor:.2f}', (x[i], y[i]),  # <- redondeo aquí
                         textcoords="offset points",
                         xytext=(0, 8),
                         ha='center',
                         fontsize=15,
                         color=color)
+
+        # Rotar las fechas en el eje X
+        plt.xticks(rotation=90)
+
         buffer = BytesIO()
         plt.savefig(buffer, format='png')
         buffer.seek(0)
@@ -1012,7 +1012,6 @@ def reportes_puesto_puntaje(request):
         plt.close(fig)
 
         return imagen_base64
-
     grafico_puesto = generar_grafico(fechas, puestos, "Evolución del Puesto", "Fecha", "Puesto", "blue", invertir_y=True)
     grafico_puntaje = generar_grafico(fechas, puntajes, "Evolución del Puntaje", "Fecha", "Puntaje", "green")
 
@@ -1808,6 +1807,7 @@ def subir_reporte(request):
                             "Al_2": fila.get("Al_2", 0),
                             "Lit_1": fila.get("Lit_1", 0),
                             "Lit_2": fila.get("Lit_2", 0),
+                            "reporte_actualizado": True,
                         }
 
                         # Si es Pre (90), añadimos todas las demás
