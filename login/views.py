@@ -978,11 +978,11 @@ def reportes_puesto_puntaje(request):
 
     reportes = Reporte.objects.filter(KK_usuario=usuario_actual).order_by('fecha_de_examen')
 
-    fechas = [reporte.fecha_de_examen.strftime('%Y-%m-%d') for reporte in reportes]
+    fechas = [reporte.fecha_de_examen.strftime('%d-%m') for reporte in reportes]
     puestos = [reporte.puesto for reporte in reportes]
     puntajes = [reporte.obtener_total_puntaje() for reporte in reportes]
 
-    def generar_grafico(x, y, titulo, xlabel, ylabel, color, invertir_y=False):
+    def generar_grafico_puntaje(x, y, titulo, xlabel, ylabel, color, invertir_y=False):
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.plot(x, y, marker='o', linestyle='-', color=color)
         ax.set_xlabel(xlabel)
@@ -1003,6 +1003,7 @@ def reportes_puesto_puntaje(request):
 
         # Rotar las fechas en el eje X
         plt.xticks(rotation=90)
+        fig.tight_layout()
 
         buffer = BytesIO()
         plt.savefig(buffer, format='png')
@@ -1012,8 +1013,42 @@ def reportes_puesto_puntaje(request):
         plt.close(fig)
 
         return imagen_base64
-    grafico_puesto = generar_grafico(fechas, puestos, "Evolución del Puesto", "Fecha", "Puesto", "blue", invertir_y=True)
-    grafico_puntaje = generar_grafico(fechas, puntajes, "Evolución del Puntaje", "Fecha", "Puntaje", "green")
+    
+
+    def generar_grafico_puesto(x, y, titulo, xlabel, ylabel, color, invertir_y=False):
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(x, y, marker='o', linestyle='-', color=color)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(True)
+
+        if invertir_y:
+            ax.invert_yaxis()
+
+        for i, valor in enumerate(y):
+            ax.annotate(str(valor), (x[i], y[i]),
+                        textcoords="offset points",
+                        xytext=(0, 8),
+                        ha='center',
+                        fontsize=15,
+                        color=color)
+
+        # Rotar etiquetas del eje x y ajustar layout
+        plt.xticks(rotation=90)
+        fig.tight_layout()  # <- Esto asegura que no se corten las etiquetas
+
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        imagen_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        buffer.close()
+        plt.close(fig)
+
+        return imagen_base64
+
+
+    grafico_puesto = generar_grafico_puesto(fechas, puestos, "Evolución del Puesto", "Fecha", "Puesto", "blue", invertir_y=True)
+    grafico_puntaje = generar_grafico_puntaje(fechas, puntajes, "Evolución del Puntaje", "Fecha", "Puntaje", "green")
 
     # Obtener nombre y último puntaje
     nombre_usuario = usuario_actual.nombre or usuario_actual.username
