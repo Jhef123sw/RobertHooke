@@ -8,6 +8,20 @@ const chkBlancas = document.getElementById("chk_blancas");
 let grafico;
 let datosOriginales;
 
+// apiUrl debe estar definido por la plantilla Django
+function cargarDatos() {
+    const usuario = estudianteInput.value;
+    const curso = cursoInput.value;
+    if (!usuario || !curso) return;
+
+    fetch(`/reportes${apiUrl}?usuario=${usuario}&curso=${curso}`)
+        .then(res => res.json())
+        .then(data => {
+            datosOriginales = data;
+            actualizarGrafico();
+        });
+}
+
 function actualizarGrafico() {
     if (!datosOriginales) return;
 
@@ -48,19 +62,6 @@ function actualizarGrafico() {
     grafico.data.labels = labels;
     grafico.data.datasets = datasets;
     grafico.update();
-}
-
-function cargarDatos() {
-    const usuario = estudianteInput.value;
-    const curso = cursoInput.value;
-    if (!usuario || !curso) return;
-
-    fetch(`/api/reportes-resumen/?usuario=${usuario}&curso=${curso}`)
-        .then(res => res.json())
-        .then(data => {
-            datosOriginales = data;
-            actualizarGrafico();
-        });
 }
 
 buscador.addEventListener("input", () => {
