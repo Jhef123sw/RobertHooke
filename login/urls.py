@@ -5,7 +5,7 @@ urlpatterns = [
     path('iniciar-tarea-reportes/', iniciar_tarea_reportes, name='iniciar_tarea_reportes'),
     path('estado-tarea/<str:task_id>/', obtener_estado_tarea, name='obtener_estado_tarea'),
     path('grafico-respuestas/', vista_grafico_respuestas, name='grafico_respuestas'),
-    path("reportes/api/reportes-resumen/", obtener_reportes_resumen, name="api_reportes_resumen"),
+    path("api/reportes-resumen/", obtener_reportes_resumen, name="api_reportes_resumen"),
     path('mi-evolucion/', vista_grafico_estudiante, name='grafico_estudiante'),
 
     #tutores
