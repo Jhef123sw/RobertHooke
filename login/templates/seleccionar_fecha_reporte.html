@@ -45,13 +45,16 @@ document.getElementById("btn-generar").addEventListener("click", function () {
         .then(response => response.json())
         .then(data => {
             const taskId = data.task_id;
+            localStorage.setItem("task_reporte_id", taskId);  // ⬅️ Guardar en el navegador
             document.getElementById("progreso-container").style.display = "block";
             verificarEstado(taskId);
         });
 });
 
 function verificarEstado(taskId) {
-    fetch(`/estado-tarea/${taskId}/`)
+    const urlEstado = "{% url 'obtener_estado_tarea' 'REEMPLAZAR_ID' %}".replace('REEMPLAZAR_ID', taskId);
+
+    fetch(urlEstado)
         .then(response => response.json())
         .then(data => {
             const barra = document.getElementById("barra-progreso");
@@ -60,6 +63,7 @@ function verificarEstado(taskId) {
             if (data.state === 'PENDING') {
                 barra.style.width = '10%';
                 barra.textContent = 'Esperando...';
+                mensaje.textContent = 'Tarea en cola...';
             } else if (data.state === 'PROGRESO') {
                 const progreso = data.info.progress || 0;
                 const step = data.info.step || 'Trabajando...';
@@ -70,16 +74,29 @@ function verificarEstado(taskId) {
                 barra.style.width = '100%';
                 barra.textContent = '100%';
                 mensaje.textContent = '¡Tarea completada con éxito!';
+                localStorage.removeItem("task_reporte_id");  // ⬅️ Borrar cuando termine
                 return;
             } else if (data.state === 'FAILURE') {
                 barra.style.background = 'red';
                 barra.textContent = 'Error';
                 mensaje.textContent = data.info.exc || 'Error inesperado';
+                localStorage.removeItem("task_reporte_id");  // ⬅️ Borrar si falla
                 return;
             }
 
             setTimeout(() => verificarEstado(taskId), 2000);
         });
 }
+
+// ⬇️ Al cargar la página, reanudar si hay una tarea en curso
+document.addEventListener("DOMContentLoaded", function () {
+    const taskId = localStorage.getItem("task_reporte_id");
+    if (taskId) {
+        document.getElementById("progreso-container").style.display = "block";
+        verificarEstado(taskId);
+    }
+});
 </script>
+
+
 {% endblock %}

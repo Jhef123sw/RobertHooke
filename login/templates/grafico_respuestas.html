@@ -1,0 +1,55 @@
+{% extends base_template %}
+{% block content %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title style="color: black;">Gráfico de Evolución</title>
+    <link rel="stylesheet" href="{% static 'css/grafico.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <input type="text" id="buscador" placeholder="Buscar estudiante...">
+        <select id="estudiante">
+            <option value="">Selecciona un estudiante</option>
+            {% for e in estudiantes %}
+                <option value="{{ e.usuario }}">{{ e.nombre }} ({{ e.usuario }})</option>
+            {% endfor %}
+        </select>
+
+        <select id="curso" disabled>
+            <option value="">Selecciona un curso</option>
+            <option value="Rv">Razonamiento Verbal</option>
+            <option value="Rm">Razonamiento Matemático</option>
+            <option value="Ar">Aritmética</option>
+            <option value="Al">Álgebra</option>
+            <option value="Ge">Geometría</option>
+            <option value="Tr">Trigonometría</option>
+            <option value="Fi">Física</option>
+            <option value="Qu">Química</option>
+            <option value="Bi">Biología</option>
+            <option value="Le">Lenguaje</option>
+            <option value="Lit">Literatura</option>
+            <option value="Hi">Historia</option>
+            <option value="Gf">Geografía</option>
+            <option value="Fil">Filosofía</option>
+            <option value="Psi">Psicología</option>
+            <option value="Ec">Economía</option>
+        </select>
+
+        <div class="checkboxes">
+            <label style="color: black;"><input type="checkbox" id="chk_correctas" checked> Correctas</label>
+            <label style="color: black;"><input type="checkbox" id="chk_incorrectas" checked> Incorrectas</label>
+            <label style="color: black;"><input type="checkbox" id="chk_blancas" checked> En blanco</label>
+        </div>
+
+        <canvas id="grafico"></canvas>
+    </div>
+
+    <script src="{% static 'js/grafico.js' %}"></script>
+</body>
+</html>
+
+{% endblock %}

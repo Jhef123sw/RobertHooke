@@ -1,9 +1,12 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea, vista_grafico_respuestas, obtener_reportes_resumen, vista_grafico_estudiante
 
 urlpatterns = [
     path('iniciar-tarea-reportes/', iniciar_tarea_reportes, name='iniciar_tarea_reportes'),
-    path('estado-tarea/<str:task_id>/', obtener_estado_tarea, name='estado_tarea'),
+    path('estado-tarea/<str:task_id>/', obtener_estado_tarea, name='obtener_estado_tarea'),
+    path('grafico-respuestas/', vista_grafico_respuestas, name='grafico_respuestas'),
+    path('api/reportes-resumen/', obtener_reportes_resumen, name='api_reportes_resumen'),
+    path('mi-evolucion/', vista_grafico_estudiante, name='grafico_estudiante'),
 
     #tutores
     path('tutorados/', estudiantes_asignados_tutor, name='tutorados'),

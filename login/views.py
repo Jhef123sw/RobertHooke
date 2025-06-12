@@ -42,6 +42,52 @@ from datetime import datetime
 from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task
 from celery.result import AsyncResult
 
+@login_required
+def vista_grafico_estudiante(request):
+    base_template = "layouts/base2.html"
+    usuario = request.user
+    return render(request, 'grafico_estudiante.html', {'usuario': usuario, 'base_template': base_template})
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def vista_grafico_respuestas(request):
+    base_template = "layouts/base.html"
+    estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante')
+    return render(request, 'grafico_respuestas.html', {'estudiantes': estudiantes, 'base_template': base_template})
+
+def obtener_reportes_resumen(request):
+    usuario = request.GET.get('usuario')
+    curso = request.GET.get('curso')
+
+    if not usuario or not curso:
+        return JsonResponse({'error': 'Datos incompletos'}, status=400)
+
+    estudiante = Estudiante.objects.get(usuario=usuario)
+    reportes = Reporte.objects.filter(KK_usuario=estudiante).order_by('fecha_de_examen')
+    variable = VariableControl.objects.first()
+
+    datos = []
+    for r in reportes:
+        correctas = getattr(r, f'{curso}_1')
+        incorrectas = getattr(r, f'{curso}_2')
+        nivel = r.nivel
+
+        if nivel == 90:  # Preuniversitario
+            total_preguntas = getattr(variable, f'{curso}_Pre')
+        else:
+            total_preguntas = getattr(variable, f'{curso}_Sem')
+
+        blancas = total_preguntas - (correctas + incorrectas)
+        datos.append({
+            'fecha': r.fecha_de_examen.strftime('%d/%m/%Y'),
+            'correctas': correctas,
+            'incorrectas': incorrectas,
+            'blancas': max(blancas, 0)
+        })
+
+    return JsonResponse(datos, safe=False)
+
 
 
 @login_required
@@ -51,6 +97,7 @@ def iniciar_tarea_reportes(request):
     return JsonResponse({'task_id': task.id})
 
 
+@login_required
 def obtener_estado_tarea(request, task_id):
     result = AsyncResult(task_id)
     data = {
