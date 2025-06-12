@@ -98,6 +98,8 @@
 .formulario_img_web {
     max-width: 600px;
     margin: 20px auto;
+    max-width: 435px;
+    justify-content: center;
 }
 
 /* Responsive */

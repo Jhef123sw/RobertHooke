@@ -3,12 +3,15 @@
     <td>
         <input type="checkbox" name="estudiantes" value="{{ estudiante.ID_Estudiante|default_if_none:'' }}" class="estudiante-checkbox">
     </td>
-    <td>{{ estudiante.nombre }}</td>
+    <td ondblclick="window.open('http://161.132.41.124/reportes/media/reportes/simulacros/{{ estudiante.usuario }}_reporte_simulacro.png', '_blank')">
+        {{ estudiante.nombre }}
+    </td>
     <td>{{ estudiante.usuario }}</td>
     <td>{{ estudiante.get_tipo_estudiante_display }}</td>
     <td>
         <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-sm btn-primary">Editar</a>
         <a href="{% url 'agregar_observacion' estudiante.pk %}" class="btn btn-sm btn-warning">Agregar Observación</a>
+        <a href="{% url 'reporte_estudiante_tutor' estudiante.pk %}" class="btn btn-sm btn-primary">Ver simulacros</a>
     </td>
 </tr>
 {% empty %}

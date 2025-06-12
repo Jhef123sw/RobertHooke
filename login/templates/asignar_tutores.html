@@ -24,15 +24,24 @@
                 Alumnos
                 <input type="checkbox" id="checkAllEstudiantes" />
             </h3>
-            <input type="text" id="busqueda-estudiantes" placeholder="Buscar alumno..." class="busqueda-box" />
+            <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                <input type="text" id="busqueda-estudiantes" placeholder="Buscar estudiante..." />
+                <label style="color: black;"><input type="checkbox" id="filtro-asignados" checked /> A</label>
+                <label style="color: black;"><input type="checkbox" id="filtro-desasignados" checked /> D</label>
+            </div>
             <ul style="color: black;">
                 {% for estudiante in estudiantes %}
-                    <li data-id="{{ estudiante.ID_Estudiante }}" class="estudiante" draggable="true">
-                        <input type="checkbox" class="select-estudiante" />
+                    <li data-id="{{ estudiante.ID_Estudiante }}" class="estudiante"
+                        {% if estudiante.tutor %}style="opacity: 0.6; cursor: not-allowed;"{% else %}draggable="true"{% endif %}>
+                        <input type="checkbox" class="select-estudiante" {% if estudiante.tutor %}disabled{% endif %} />
                         {{ estudiante.usuario }} {{ estudiante.nombre }}
+                        {% if estudiante.tutor %}
+                            <span style="font-size: 0.8em; color: #888;">(Asignado {{ estudiante.tutor.nombre }})</span>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
+
         </div>
 
 
@@ -61,34 +70,74 @@
             }
         }
 
+        function actualizarAlumnosDeTutor() {
+            fetch(`/obtener-estudiantes/${tutorSeleccionadoId}/`)
+                .then(res => res.json())
+                .then(data => {
+                    const lista = document.getElementById('lista-alumnos-tutor');
+                    lista.innerHTML = '';
+                    data.forEach(est => {
+                        const li = document.createElement('li');
+                        li.dataset.id = est.ID_Estudiante;
+                        li.draggable = true;
+                        li.className = 'estudiante';
+                        li.innerHTML = `<input type="checkbox" class="select-asignado" /> ${est.usuario} ${est.nombre}`;
+                        lista.appendChild(li);
+                    });
+                    setCheckboxHandlers();
+                    setDragEvents();
+                    mostrarMarcadorSiVacio();
+                });
+        }
+
+        function actualizarListaGeneral() {
+            fetch(`/obtener-todos-estudiantes/`)
+                .then(res => res.json())
+                .then(data => {
+                    const lista = document.querySelector('#estudiantes ul');
+                    lista.innerHTML = '';
+                    data.forEach(est => {
+                        const li = document.createElement('li');
+                        li.dataset.id = est.ID_Estudiante;
+                        li.className = 'estudiante';
+                        li.innerHTML = `<input type="checkbox" class="select-estudiante" />
+                                        ${est.usuario} ${est.nombre}
+                                        ${est.tutor ? `<span style="font-size: 0.8em; color: #888;">(Asignado ${est.tutor})</span>` : ''}`;
+                        
+                        if (!est.tutor) {
+                            li.draggable = true;
+                        } else {
+                            li.style.opacity = 0.6;
+                            li.style.cursor = 'not-allowed';
+                        }
+
+                        lista.appendChild(li);
+                    });
+                    setCheckboxHandlers();
+                    setDragEvents();
+                });
+        }
+
         let tutorSeleccionadoId = null;
 
         document.querySelectorAll('.tutor').forEach(tutor => {
             tutor.addEventListener('click', function () {
                 tutorSeleccionadoId = this.dataset.id;
                 document.getElementById('nombre-tutor').innerText = this.innerText;
-                fetch(`/obtener-estudiantes/${tutorSeleccionadoId}/`)
-                    .then(res => res.json())
-                    .then(data => {
-                        const lista = document.getElementById('lista-alumnos-tutor');
-                        lista.innerHTML = '';
-                        data.forEach(est => {
-                            const li = document.createElement('li');
-                            li.dataset.id = est.ID_Estudiante;
-                            li.draggable = true;
-                            li.className = 'estudiante';
-                            li.innerHTML = `<input type="checkbox" class="select-asignado" /> ${est.usuario} ${est.nombre}`;
-                            lista.appendChild(li);
-                        });
-                        setCheckboxHandlers();
-                        setDragEvents();
-                    });
+                actualizarAlumnosDeTutor();
             });
         });
 
         function setCheckboxHandlers() {
             document.getElementById('checkAllEstudiantes')?.addEventListener('change', function () {
-                document.querySelectorAll('.select-estudiante').forEach(cb => cb.checked = this.checked);
+                document.getElementById('checkAllEstudiantes')?.addEventListener('change', function () {
+                document.querySelectorAll('.select-estudiante').forEach(cb => {
+                    const li = cb.closest('li');
+                    const visible = li.offsetParent !== null;
+                    const habilitado = !cb.disabled;
+                    cb.checked = this.checked && visible && habilitado;
+                });
+            });
             });
             document.getElementById('checkAllAsignados')?.addEventListener('change', function () {
                 document.querySelectorAll('.select-asignado').forEach(cb => cb.checked = this.checked);
@@ -105,7 +154,6 @@
             });
         }
 
-        mostrarMarcadorSiVacio();
         setCheckboxHandlers();
         setDragEvents();
 
@@ -117,12 +165,15 @@
         listaTutor.addEventListener('drop', e => {
             e.preventDefault();
             const ids = JSON.parse(e.dataTransfer.getData('ids'));
-            ids.forEach(id => {
+            Promise.all(ids.map(id =>
                 fetch('/asignar-estudiante/', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' },
                     body: new URLSearchParams({ estudiante_id: id, tutor_id: tutorSeleccionadoId })
-                }).then(() => location.reload());
+                })
+            )).then(() => {
+                actualizarAlumnosDeTutor();
+                actualizarListaGeneral();
             });
         });
 
@@ -131,23 +182,45 @@
         listaGeneral.addEventListener('drop', e => {
             e.preventDefault();
             const ids = JSON.parse(e.dataTransfer.getData('ids'));
-            ids.forEach(id => {
+            Promise.all(ids.map(id =>
                 fetch('/desasignar-estudiante/', {
                     method: 'POST',
                     headers: { 'X-CSRFToken': '{{ csrf_token }}' },
                     body: new URLSearchParams({ estudiante_id: id })
-                }).then(() => location.reload());
+                })
+            )).then(() => {
+                actualizarAlumnosDeTutor();
+                actualizarListaGeneral();
             });
         });
 
         document.getElementById('busqueda-estudiantes').addEventListener('input', function () {
-        const filtro = this.value.toLowerCase();
-        document.querySelectorAll('#estudiantes ul li').forEach(li => {
-            const texto = li.textContent.toLowerCase();
-            li.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            const filtro = this.value.toLowerCase();
+            document.querySelectorAll('#estudiantes ul li').forEach(li => {
+                const texto = li.textContent.toLowerCase();
+                li.style.display = texto.includes(filtro) ? 'flex' : 'none';
+            });
         });
-    });
+        function aplicarFiltros() {
+            const texto = document.getElementById('busqueda-estudiantes').value.toLowerCase();
+            const mostrarAsignados = document.getElementById('filtro-asignados').checked;
+            const mostrarDesasignados = document.getElementById('filtro-desasignados').checked;
+
+            document.querySelectorAll('#estudiantes ul li').forEach(li => {
+                const esAsignado = li.innerHTML.includes('(Asignado');
+                const coincideBusqueda = li.textContent.toLowerCase().includes(texto);
+                const mostrar = coincideBusqueda && ((esAsignado && mostrarAsignados) || (!esAsignado && mostrarDesasignados));
+                li.style.display = mostrar ? 'flex' : 'none';
+            });
+        }
+
+        document.getElementById('busqueda-estudiantes').addEventListener('input', aplicarFiltros);
+        document.getElementById('filtro-asignados').addEventListener('change', aplicarFiltros);
+        document.getElementById('filtro-desasignados').addEventListener('change', aplicarFiltros);
+
     </script>
+
+
 
 
 </body>

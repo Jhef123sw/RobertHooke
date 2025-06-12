@@ -1,6 +1,7 @@
 # login/tasks.py
 
-from celery import shared_task
+from celery import shared_task, states
+from celery.exceptions import Ignore
 from datetime import datetime
 from .models import Estudiante, Reporte
 import os
@@ -9,6 +10,26 @@ from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+
+
+@shared_task(bind=True)
+def generar_reportes_completos_task(self):
+    try:
+        self.update_state(state='PROGRESO', meta={'step': 'Generando reportes', 'progress': 20})
+        generar_todo_reporte_task()
+
+        self.update_state(state='PROGRESO', meta={'step': 'Generando gráficos', 'progress': 60})
+        generar_imagenes_reportes_por_fecha_task()
+
+        self.update_state(state='PROGRESO', meta={'step': 'Finalizando', 'progress': 90})
+
+        return {'status': 'Completado', 'progress': 100}
+    except Exception as e:
+        self.update_state(state=states.FAILURE, meta={'exc': str(e)})
+        raise Ignore()
+    resultado1 = generar_todo_reporte_task()
+    resultado2 = generar_imagenes_reportes_por_fecha_task()
+    return f"{resultado1} | {resultado2}"
 
 cursos_pre = [
             "Razonamiento Verbal", "Razonamiento Matemático", "Aritmética", "Álgebra",
@@ -196,9 +217,8 @@ def crear_grafico_estudiante_curso(estudiante, nombre_curso, datos):
     plt.close()
 
 @shared_task
-def generar_imagenes_reportes_por_fecha_task(fecha_str):
+def generar_imagenes_reportes_por_fecha_task():
     try:
-        fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date()
         cursos = [
             "Razonamiento Verbal", "Razonamiento Matemático", "Aritmética", "Álgebra",
             "Geometría", "Trigonometría", "Física", "Química", "Biología", "Lenguaje",
@@ -207,56 +227,60 @@ def generar_imagenes_reportes_por_fecha_task(fecha_str):
 
         ruta_base = os.path.join(settings.MEDIA_ROOT)
 
-        for estudiante in Estudiante.objects.all():
-            reportes = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_obj, reporte_actualizado = True)
+        reportes = Reporte.objects.filter(reporte_actualizado=True)
 
-            for reporte in reportes:
-                datos = reporte.obtener_datos()
-                nivel = reporte.nivel
+        for reporte in reportes:
+            estudiante = reporte.KK_usuario
+            datos = reporte.obtener_datos()
+            nivel = reporte.nivel
+            fecha_examen = reporte.fecha_de_examen
 
-                preguntas_por_curso = obtener_preguntas_por_curso(nivel)
+            preguntas_por_curso = obtener_preguntas_por_curso(nivel)
 
-                carpeta_usuario = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
-                os.makedirs(carpeta_usuario, exist_ok=True)
+            carpeta_usuario = os.path.join(ruta_base, f"{estudiante.usuario}_2025")
+            os.makedirs(carpeta_usuario, exist_ok=True)
 
-                for curso, valores in datos.items():
-                    correctas, incorrectas = valores
-                    total_preguntas = preguntas_por_curso.get(curso, 10)
-                    en_blanco = total_preguntas - (correctas + incorrectas)
+            for curso, valores in datos.items():
+                correctas, incorrectas = valores
+                total_preguntas = preguntas_por_curso.get(curso, 10)
+                en_blanco = total_preguntas - (correctas + incorrectas)
 
-                    etiquetas = ["Correctas", "Incorrectas", "En blanco"]
-                    valores_barras = [correctas, incorrectas, en_blanco]
-                    colores = ["green", "red", "gray"]
+                etiquetas = ["Correctas", "Incorrectas", "En blanco"]
+                valores_barras = [correctas, incorrectas, en_blanco]
+                colores = ["green", "red", "gray"]
 
-                    fig, ax = plt.subplots(figsize=(8, 4))
-                    barras = ax.bar(etiquetas, valores_barras, color=colores)
+                fig, ax = plt.subplots(figsize=(8, 4))
+                barras = ax.bar(etiquetas, valores_barras, color=colores)
 
-                    for barra in barras:
-                        altura = barra.get_height()
-                        ax.annotate(f'{altura}',
-                                    xy=(barra.get_x() + barra.get_width() / 2, altura),
-                                    xytext=(0, 3),
-                                    textcoords="offset points",
-                                    ha='center', va='bottom',
-                                    fontsize=15)
+                for barra in barras:
+                    altura = barra.get_height()
+                    ax.annotate(f'{altura}',
+                                xy=(barra.get_x() + barra.get_width() / 2, altura),
+                                xytext=(0, 3),
+                                textcoords="offset points",
+                                ha='center', va='bottom',
+                                fontsize=15)
 
-                    ax.set_title("")
-                    ax.spines['top'].set_visible(False)
-                    ax.spines['right'].set_visible(False)
-                    ax.spines['left'].set_visible(False)
-                    ax.spines['bottom'].set_visible(False)
-                    ax.tick_params(left=False, bottom=False)
-                    ax.set_yticks([])
+                ax.set_title("")
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_visible(False)
+                ax.spines['bottom'].set_visible(False)
+                ax.tick_params(left=False, bottom=False)
+                ax.set_yticks([])
 
-                    plt.tight_layout()
+                plt.tight_layout()
 
-                    nombre_archivo = f"{curso}_{estudiante.usuario}_{reporte.fecha_de_examen}.png".replace(" ", "_")
-                    ruta_archivo = os.path.join(carpeta_usuario, nombre_archivo)
-                    estudiante.reporte_actualizado = False
-                    estudiante.save()
-                    plt.savefig(ruta_archivo, format='png', bbox_inches='tight', facecolor='white')
-                    plt.close(fig)
-        
+                nombre_archivo = f"{curso}_{estudiante.usuario}_{fecha_examen}.png".replace(" ", "_")
+                ruta_archivo = os.path.join(carpeta_usuario, nombre_archivo)
+
+                plt.savefig(ruta_archivo, format='png', bbox_inches='tight', facecolor='white')
+                plt.close(fig)
+
+            # Marcar como procesado
+            reporte.reporte_actualizado = False
+            reporte.save()
+
         return "Imágenes generadas correctamente."
 
     except Exception as e:

@@ -8,8 +8,8 @@ class LoginForm(forms.Form):
 class CargarExcelFormReporte(forms.Form):
     NIVEL_CHOICES = [
         ('', '---------'),         # Opción en blanco obligatoria
-        (30, 'Semillero (35 preguntas)'),
-        (90, 'Pre (90 preguntas)'),
+        (30, 'Semillero'),
+        (90, 'Pre'),
     ]
 
     nivel = forms.ChoiceField(

@@ -99,8 +99,11 @@
     </ul>
     {% endif %}
     <div class="main-content">
-        <a href="{% url 'descargar_reporte' %}" class="btn_descargar">Descargar mi reporte</a>
-        <h2>Reportes del Estudiante</h2>
+        <a href="{% url 'descargar_reporte' usuario_actual.pk %}" class="btn_descargar">Descargar mi reporte</a>
+        {% load custom_filters %}
+        {% with usuario_actual.nombre|split:" " as nombres %}
+            <h2>Reporte de {{ nombres.0 }}</h2>
+        {% endwith %}
         <div class="contenedor-filtros">
             <label for="filtro-curso">Selecciona un curso:</label>
             <select id="filtro-curso">

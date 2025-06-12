@@ -16,12 +16,18 @@
 
 <!-- Contenedor de los dos formularios en fila -->
 <div class="contenedor-superior">
-    <div class="formulario formulario_img_reporte">
-        <h2>Generar reportes en imágenes</h2>
-        <p>Con este botón se generan los reportes para los estudiantes de todos sus simulacros</p>
-        <form method="get" action="{% url 'generar_todo_reporte' %}">
-            <button type="submit" class="btn-generar">Generar reportes</button>
-        </form>
+    
+    <div class="formulario formulario_img_web">
+        <h2>Actualizar todos los reportes</h2>
+        <p>Este botón generará los reportes y mostrará el progreso en tiempo real.</p>
+        <button id="btn-generar" class="btn-generar">Actualizar Reportes</button>
+
+        <div id="progreso-container" style="margin-top: 20px; display: none;">
+            <div style="background: #ddd; width: 100%; height: 25px;">
+                <div id="barra-progreso" style="height: 25px; background: #28a745; width: 0%; text-align: center; color: white;">0%</div>
+            </div>
+            <p id="mensaje-progreso" style="margin-top: 10px;"></p>
+        </div>
     </div>
 
     <div class="formulario formulario_img_asistencia">
@@ -33,22 +39,47 @@
     </div>
 </div>
 
-<!-- Formulario inferior centrado -->
-<div class="formulario formulario_img_web">
-    <h2>Generar imágenes para la web</h2>
-    <p>Botón para generar gráficos mostrados la página web, hacerlo solamente después de subir data de un simulacro y para la fecha de dicho simulacro.</p>
-    <form method="post">
-        {% csrf_token %}
-        <label for="fecha">Fecha:</label>
-        <select name="fecha" id="fecha" required>
-            <option value="" disabled selected>Seleccione una fecha</option>
-            {% for fecha in fechas %}
-                <option value="{{ fecha|date:'Y-m-d' }}">{{ fecha }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
-        <button type="submit" class="btn-generar">Generar Imágenes</button>
-    </form>
-</div>
-<script src="{% static 'js/scripts.js' %}"></script> 
+<script>
+document.getElementById("btn-generar").addEventListener("click", function () {
+    fetch("{% url 'iniciar_tarea_reportes' %}")
+        .then(response => response.json())
+        .then(data => {
+            const taskId = data.task_id;
+            document.getElementById("progreso-container").style.display = "block";
+            verificarEstado(taskId);
+        });
+});
+
+function verificarEstado(taskId) {
+    fetch(`/estado-tarea/${taskId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const barra = document.getElementById("barra-progreso");
+            const mensaje = document.getElementById("mensaje-progreso");
+
+            if (data.state === 'PENDING') {
+                barra.style.width = '10%';
+                barra.textContent = 'Esperando...';
+            } else if (data.state === 'PROGRESO') {
+                const progreso = data.info.progress || 0;
+                const step = data.info.step || 'Trabajando...';
+                barra.style.width = progreso + '%';
+                barra.textContent = progreso + '%';
+                mensaje.textContent = step;
+            } else if (data.state === 'SUCCESS') {
+                barra.style.width = '100%';
+                barra.textContent = '100%';
+                mensaje.textContent = '¡Tarea completada con éxito!';
+                return;
+            } else if (data.state === 'FAILURE') {
+                barra.style.background = 'red';
+                barra.textContent = 'Error';
+                mensaje.textContent = data.info.exc || 'Error inesperado';
+                return;
+            }
+
+            setTimeout(() => verificarEstado(taskId), 2000);
+        });
+}
+</script>
 {% endblock %}

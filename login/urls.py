@@ -1,20 +1,25 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea
 
 urlpatterns = [
+    path('iniciar-tarea-reportes/', iniciar_tarea_reportes, name='iniciar_tarea_reportes'),
+    path('estado-tarea/<str:task_id>/', obtener_estado_tarea, name='estado_tarea'),
+
     #tutores
+    path('tutorados/', estudiantes_asignados_tutor, name='tutorados'),
     path('asignar-tutores/', asignar_tutores, name='asignar_tutores'),
     path('obtener-estudiantes/<int:tutor_id>/', obtener_estudiantes_tutor, name='obtener_estudiantes_tutor'),
     path('asignar-estudiante/', asignar_estudiante, name='asignar_estudiante'),
     path('desasignar-estudiante/', desasignar_estudiante, name='desasignar_estudiante'),
     path('tutores/', listar_tutores, name='listar_tutores'),
     path('crear-tutor/', crear_tutor, name='crear_tutor'),
+    path('obtener-todos-estudiantes/', obtener_todos_los_estudiantes, name='obtener_todos_estudiantes'),
 
     path('', reportes_puesto_puntaje, name='home'),
     path('actualizar_datos/', actualizar_datos, name='actualizar_datos'),
     path('cargar_asistencias/', cargar_asistencias, name='subir_asistencia'),
     path('cargar-excel/', cargar_excel, name='cargar_excel'),
-    path('descargar-reporte/', descargar_reporte, name='descargar_reporte'),
+    path('descargar-reporte/<int:pk>/', descargar_reporte, name='descargar_reporte'),
     path('descargar-reportes/', descargar_reportes_zip, name='descargar_reportes_zip'),
     path('descargar-asistencias/', descargar_reportes_asistencia_zip, name='descargar_reportes_asistencias_zip'),
     path('descargar_estudiantes_excel/', descargar_estudiantes_excel, name='descargar_estudiantes_excel'),
@@ -23,8 +28,10 @@ urlpatterns = [
     path('estudiantes/eliminar-masivo/', eliminar_estudiantes_masivo, name='eliminar_estudiantes_masivo'),
     path('estudiantes/<int:estudiante_id>/observaciones/', agregar_observacion, name='agregar_observacion'),
     path('estudiantes/editar/<int:pk>/', editar_estudiante, name='editar_estudiante'),
+    path('estudiantes/reporte/<int:pk>/', reportes_estudiante_tutor, name='reporte_estudiante_tutor'),
+    path('estudiantes/asistencias/<int:pk>/', ver_asistencias_tutor, name='reporte_asistencias_tutor'),
     path('estudiantes/eliminar/<int:pk>/', eliminar_estudiante, name='eliminar_estudiante'),
-    path('generar_imagenes_fecha/<fecha>/', generar_imagenes_reportes_por_fecha, name='generar_imagenes_fecha'),
+    path('generar_imagenes_fecha/', generar_imagenes_reportes_por_fecha, name='generar_imagenes_fecha'),
     path('generar_imagenes_reportes/', generar_imagenes_reportes, name='generar_img_carpetas'),
     path("generar_reporte/", generar_reporte, name="generar_reporte"),
     path('generar_reporte_todos/', generar_reporte_asistencia_todos, name='generar_asistencia_todos'),
@@ -38,6 +45,7 @@ urlpatterns = [
     path('reportes_estudiante/', reportes_estudiante, name = 'reportes_estudiante'),
     path('salir/', salir, name='salir'),
     path('seleccionar_fecha_reporte/', seleccionar_fecha_generacion, name='seleccionar_fecha_generacion'),
+    path('generar_todos_reportes/', generar_todos_los_reportes, name='generar_todos_los_reportes'),
     path('subir_reporte/', subir_reporte, name='subir_reporte'),
     path('mis-asistencias/', ver_asistencias, name='ver_asistencias'),
     path('listar_asistencias/', ver_todas_asistencias, name='listar_asistencias'),

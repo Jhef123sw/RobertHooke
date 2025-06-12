@@ -39,8 +39,40 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
 from .models import Reporte, Estudiante
 from datetime import datetime
-from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task
+from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task
+from celery.result import AsyncResult
 
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def iniciar_tarea_reportes(request):
+    task = generar_reportes_completos_task.delay()
+    return JsonResponse({'task_id': task.id})
+
+
+def obtener_estado_tarea(request, task_id):
+    result = AsyncResult(task_id)
+    data = {
+        'state': result.state,
+        'info': result.info if result.info else {}
+    }
+    return JsonResponse(data)
+
+
+
+@login_required
+@estudiante_tipo_requerido(['tutor'])
+def estudiantes_asignados_tutor(request):
+    base_template = "layouts/base_tutor.html"
+    tutor = request.user
+    estudiantes = Estudiante.objects.filter(tutor_id=tutor)
+
+    return render(request, 'estudiantes_asignados.html', {
+        'base_template': base_template,
+        'tutor': tutor,
+        'estudiantes': estudiantes,
+    })
 
 
 @login_required
@@ -54,7 +86,18 @@ def listar_tutores(request):
         'base_template': base_template,
     })
 
-
+def obtener_todos_los_estudiantes(request):
+    estudiantes = Estudiante.objects.filter(tipo_estudiante = 'estudiante').select_related('tutor')
+    data = [
+        {
+            'ID_Estudiante': est.ID_Estudiante,
+            'usuario': est.usuario,
+            'nombre': est.nombre,
+            'tutor': est.tutor.nombre if est.tutor else None,
+        }
+        for est in estudiantes
+    ]
+    return JsonResponse(data, safe=False)
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -94,43 +137,148 @@ def crear_tutor(request):
 def asignar_tutores(request):
     usuario_actual = request.user
     base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+
     tutores = Estudiante.objects.filter(tipo_estudiante='tutor')
-    print(tutores)
-    estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante', tutor__isnull=True)
-    print(tutores)
+    estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante')
+
     return render(request, 'asignar_tutores.html', {
         'base_template': base_template,
         'tutores': tutores,
         'estudiantes': estudiantes,
     })
 
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def obtener_estudiantes_tutor(request, tutor_id):
     tutor = get_object_or_404(Estudiante, pk=tutor_id)
-    estudiantes = tutor.tutorados.all().values('ID_Estudiante', 'nombre')
+    estudiantes = tutor.tutorados.all().values('ID_Estudiante', 'nombre', 'usuario')
     return JsonResponse(list(estudiantes), safe=False)
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador', 'tutor'])
+def reportes_estudiante_tutor(request, pk):
+
+    usuario = request.user
+
+    usuario_actual = get_object_or_404(Estudiante, pk=pk)
+    
+    if usuario.tipo_estudiante == "administrador":
+        base_template = "layouts/base.html"
+    elif usuario.tipo_estudiante == "tutor":
+        base_template = "layouts/base_tutor.html"
+    else:
+        base_template = "layouts/base2.html"
+
+    reportes = Reporte.objects.filter(KK_usuario=usuario_actual).order_by('-fecha_de_examen')
+    print(reportes)
+    cursos = [
+        "Razonamiento Verbal", "Razonamiento Matemático", "Aritmética", "Álgebra",
+        "Geometría", "Trigonometría", "Física", "Química", "Biología", "Lenguaje",
+        "Literatura", "Historia", "Geografía", "Filosofía", "Psicología", "Economía"
+    ]
+
+    fechas = list(reportes.values_list('fecha_de_examen', flat=True).distinct())
+    graficos = []
+
+    # Ruta base dentro de MEDIA_ROOT
+    carpeta_usuario = os.path.join(settings.MEDIA_ROOT, f"{usuario_actual.usuario}_2025")
+    print(usuario_actual)
+    for reporte in reportes:
+        datos = reporte.obtener_datos()
+
+        for curso in datos.keys():
+            # Generar el nombre del archivo según la estructura "curso_usuario_fecha.png"
+            nombre_archivo = f"{curso}_{usuario_actual.usuario}_{reporte.fecha_de_examen}.png".replace(" ", "_")
+            ruta_relativa = os.path.join(f"{usuario_actual.usuario}_2025", nombre_archivo)
+            ruta_absoluta = os.path.join(settings.MEDIA_ROOT, ruta_relativa)
+
+            # Verificar si el archivo realmente existe antes de agregarlo
+            if os.path.exists(ruta_absoluta):
+                graficos.append({
+                    "fecha": reporte.fecha_de_examen,
+                    "curso": curso,
+                    "ruta_imagen": f"{settings.MEDIA_URL}{ruta_relativa.replace('\\', '/')}"
+                })
+    
+    return render(request, 'home.html', {
+        'graficos': graficos,
+        'cursos': cursos,
+        'fechas': fechas,
+        'base_template': base_template,
+        'usuario_actual': usuario_actual,  # <--- esto
+    })
+
+@login_required
+@estudiante_tipo_requerido(['administrador', 'tutor'])
+def ver_asistencias_tutor(request, pk):
+    usuario = request.user
+    estudiante = get_object_or_404(Estudiante, pk=pk)
+    if usuario.tipo_estudiante == "administrador":
+        base_template = "layouts/base.html"
+    elif usuario.tipo_estudiante == "tutor":
+        base_template = "layouts/base_tutor.html"
+    else:
+        base_template = "layouts/base2.html"
+    fecha_filtrada = request.GET.get('fecha')
+    # Filtrar asistencias del estudiante y ordenarlas
+    asistencias = Asistencia.objects.filter(KK_usuario=estudiante).order_by('Fecha', 'Hora')
+
+    if fecha_filtrada:
+        try:
+            fecha_obj = datetime.strptime(fecha_filtrada, "%Y-%m-%d").date()
+            asistencias = asistencias.filter(Fecha=fecha_obj)
+        except ValueError:
+            pass  # Fecha inválida, ignora el filtro
+
+    agrupadas_por_fecha = defaultdict(list)
+    for asistencia in asistencias:
+        agrupadas_por_fecha[asistencia.Fecha].append(asistencia)
+
+    datos = []
+    for fecha in asistencias.values_list('Fecha', flat=True).distinct().order_by('Fecha'):
+        marcas = asistencias.filter(Fecha=fecha).order_by('Hora')
+        for i, asistencia in enumerate(marcas, start=1):
+            dia_semana = dias_semana[fecha.weekday()]
+            fecha_corta = f"{dia_semana} {fecha.strftime('%d/%m')}"
+            datos.append({
+                "usuario": estudiante.usuario,
+                "nombre": estudiante.nombre,
+                "numero_marca": i,
+                "fecha": fecha.strftime('%d/%m/%Y'),
+                "fecha_corta": fecha_corta,
+                "hora": asistencia.Hora,
+                "observacion": asistencia.Observacion,
+                "modalidad" : asistencia.Modalidad,
+            })
+
+    return render(request, "ver_asistencias.html", {"asistencias": datos, "base_template": base_template, "fecha_filtrada": fecha_filtrada})
+
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def asignar_estudiante(request):
-    estudiante_id = request.POST.get('estudiante_id')
-    tutor_id = request.POST.get('tutor_id')
-    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
-    tutor = get_object_or_404(Estudiante, pk=tutor_id)
-    estudiante.tutor = tutor
-    estudiante.save()
-    return JsonResponse({'ok': True})
-
+    if request.method == 'POST':
+        estudiante_id = request.POST.get('estudiante_id')
+        tutor_id = request.POST.get('tutor_id')
+        estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+        tutor = get_object_or_404(Estudiante, pk=tutor_id)
+        estudiante.tutor = tutor
+        estudiante.save()
+        return JsonResponse({'ok': True})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def desasignar_estudiante(request):
-    estudiante_id = request.POST.get('estudiante_id')
-    estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
-    estudiante.tutor = None
-    estudiante.save()
-    return JsonResponse({'ok': True})
+    if request.method == 'POST':
+        estudiante_id = request.POST.get('estudiante_id')
+        estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
+        estudiante.tutor = None
+        estudiante.save()
+        return JsonResponse({'ok': True})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
 
 
 #Descargas
@@ -183,17 +331,21 @@ def descargar_estudiantes_excel(request):
 
 
 @login_required
-def descargar_reporte(request):
-    usuario_actual = request.user
+def descargar_reporte(request, pk):
+    # Buscar al estudiante por su PK
+    estudiante = get_object_or_404(Estudiante, pk=pk)
+
     try:
-        ruta_descarga = f"media/reportes/simulacros/{usuario_actual.usuario}_reporte_simulacro.png"
+        # Ruta donde debería estar el reporte del estudiante
+        ruta_descarga = os.path.join("media", "reportes", "simulacros", f"{estudiante.usuario}_reporte_simulacro.png")
         if not os.path.exists(ruta_descarga):
             raise Http404("El reporte no se ha generado todavía, por favor ponte en contacto con la administración.")
+        
         return FileResponse(open(ruta_descarga, 'rb'), as_attachment=True, filename=os.path.basename(ruta_descarga))
-
     except Exception as e:
         print(f"Error al descargar el reporte: {e}")
-        raise Http404("No se pudo descargar el reporte : {e}")
+        raise Http404("El reporte no se ha generado todavía, por favor ponte en contacto con la administración.")
+
 
 
 @require_POST
@@ -500,7 +652,12 @@ preguntas_semillero = {
         }
 
 
-
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def generar_todos_los_reportes(request):
+    generar_reportes_completos_task.delay()
+    messages.success(request, "Se están generando todos los reportes en segundo plano. Puedes continuar usando el sistema.")
+    return redirect('seleccionar_fecha_generacion')
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -615,8 +772,8 @@ def seleccionar_fecha_generacion(request):
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
-def generar_imagenes_reportes_por_fecha(request, fecha):
-    generar_imagenes_reportes_por_fecha_task.delay(fecha)
+def generar_imagenes_reportes_por_fecha(request):
+    generar_imagenes_reportes_por_fecha_task.delay()
     messages.success(request, "Se están generando las imágenes en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 
@@ -944,7 +1101,8 @@ def reportes_estudiante(request):
         'graficos': graficos,
         'cursos': cursos,
         'fechas': fechas,
-        "base_template": base_template
+        'base_template': base_template,
+        'usuario_actual': usuario_actual,  # <--- esto
     })
 
 @login_required
@@ -1086,24 +1244,32 @@ def ver_todas_asistencias(request):
     fecha_filtrada = request.GET.get('fecha')
     query = request.GET.get('q', '').strip()
 
-    asistencias = Asistencia.objects.all().select_related('KK_usuario').order_by('Fecha', 'Hora')
+    asistencias_qs = Asistencia.objects.all().select_related('KK_usuario').order_by('-Fecha', '-Hora')
 
+    # Aplica filtros antes del slice
     if fecha_filtrada:
         try:
             fecha_obj = datetime.strptime(fecha_filtrada, "%Y-%m-%d").date()
-            asistencias = asistencias.filter(Fecha=fecha_obj)
+            asistencias_qs = asistencias_qs.filter(Fecha=fecha_obj)
         except ValueError:
             pass
 
     if query:
-        asistencias = asistencias.filter(
+        asistencias_qs = asistencias_qs.filter(
             Q(KK_usuario__nombre__icontains=query) |
             Q(KK_usuario__usuario__icontains=query)
         )
 
+    # Aplica el slice después de los filtros
+    asistencias = asistencias_qs[:200]
+
+    # Ahora extrae las fechas distintas desde los registros ya limitados
+    fechas = sorted(set(a.Fecha for a in asistencias))
+
     datos = []
-    for fecha in asistencias.values_list('Fecha', flat=True).distinct().order_by('Fecha'):
-        marcas_fecha = asistencias.filter(Fecha=fecha).order_by('KK_usuario__usuario', 'Hora')
+    for fecha in fechas:
+        marcas_fecha = [a for a in asistencias if a.Fecha == fecha]
+        marcas_fecha.sort(key=lambda a: (a.KK_usuario.usuario, a.Hora))
         marcas_por_usuario = defaultdict(list)
 
         for asistencia in marcas_fecha:
@@ -1123,6 +1289,7 @@ def ver_todas_asistencias(request):
                     "modalidad": asistencia.Modalidad,
                     "observacion": asistencia.Observacion
                 })
+
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         html = render_to_string("fragmentos/tabla_asistencias.html", {"asistencias": datos})
@@ -1281,12 +1448,17 @@ def eliminar_estudiantes_masivo(request):
     return redirect('lista_estudiantes')
 
 @login_required
-@estudiante_tipo_requerido(['administrador'])
+@estudiante_tipo_requerido(['administrador', 'tutor'])
 def agregar_observacion(request, estudiante_id):
     usuario_actual = request.user
 
+    if usuario_actual.tipo_estudiante == "administrador":
+        base_template = "layouts/base.html"
+    elif usuario_actual.tipo_estudiante == "tutor":
+        base_template = "layouts/base_tutor.html"
+    else:
+        base_template = "layouts/base2.html"
     # Definir la plantilla según el tipo de usuario
-    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
     estudiante = get_object_or_404(Estudiante, ID_Estudiante=estudiante_id)
     reportes = Reporte.objects.filter(KK_usuario=estudiante)
     
@@ -1820,16 +1992,22 @@ def subir_reporte(request):
                 if nivel == 90 and not all(col in df.columns for col in columnas_pre):
                     messages.error(request, "El archivo no tiene las columnas esperadas para nivel Pre: 'Alumno', 'Fecha Simulacro', 'Puesto', 'Rv_1', 'Rv_2', 'Rm_1', 'Rm_2', 'Ar_1', 'Ar_2', 'Al_1', 'Al_2','Ge_1', 'Ge_2', 'Tr_1', 'Tr_2', 'Fi_1', 'Fi_2', 'Qu_1', 'Qu_2', 'Bi_1', 'Bi_2','Le_1', 'Le_2', 'Lit_1', 'Lit_2', 'Hi_1', 'Hi_2', 'Gf_1', 'Gf_2', 'Fil_1', 'Fil_2','Psi_1', 'Psi_2', 'Ec_1', 'Ec_2', 'Observacion'")
                     return redirect('subir_reporte')
-
+                actualizados = 0
+                nuevos = 0
                 for _, fila in df.iterrows():
                     try:
                         estudiante = Estudiante.objects.get(usuario=fila['Alumno'])
                         estudiante.reporte_actualizado = True
                         estudiante.save()
+
+                        fecha_examen = fila.get('Fecha Simulacro')
+
+                        # Intentar obtener un registro existente
+                        reporte_existente = Reporte.objects.filter(KK_usuario=estudiante, fecha_de_examen=fecha_examen).first()
+
                         # Campos comunes
                         datos = {
-                            "KK_usuario": estudiante,
-                            "fecha_de_examen": fila.get('Fecha Simulacro'),
+                            "fecha_de_examen": fecha_examen,
                             "puesto": fila.get('Puesto'),
                             "nivel": nivel,
                             "Rv_1": fila.get("Rv_1", 0),
@@ -1845,7 +2023,6 @@ def subir_reporte(request):
                             "reporte_actualizado": True,
                         }
 
-                        # Si es Pre (90), añadimos todas las demás
                         if nivel == 90:
                             datos.update({
                                 "Ge_1": fila.get("Ge_1", 0), "Ge_2": fila.get("Ge_2", 0),
@@ -1861,18 +2038,27 @@ def subir_reporte(request):
                                 "Ec_1": fila.get("Ec_1", 0), "Ec_2": fila.get("Ec_2", 0),
                             })
                         else:
-                            # Semillero: rellenamos todo lo demás con ceros
                             for campo in ['Ge', 'Tr', 'Fi', 'Qu', 'Bi', 'Le', 'Hi', 'Gf', 'Fil', 'Psi', 'Ec']:
                                 datos[f"{campo}_1"] = 0
                                 datos[f"{campo}_2"] = 0
 
-                        Reporte.objects.create(**datos)
+                        if reporte_existente:
+                            # Actualizar campos del reporte existente
+                            for key, value in datos.items():
+                                setattr(reporte_existente, key, value)
+                            reporte_existente.save()
+                            actualizados += 1
+                        else:
+                            # Crear nuevo reporte si no existe
+                            Reporte.objects.create(KK_usuario=estudiante, **datos)
+                            nuevos += 1
 
                     except Estudiante.DoesNotExist:
                         messages.error(request, f"El estudiante '{fila['Alumno']}' no existe.")
                         continue
 
-                messages.success(request, "Datos cargados exitosamente.")
+
+                messages.success(request, f"Datos cargados exitosamente. {nuevos} nuevos y {actualizados} actualizados.")
                 return redirect('subir_reporte')
 
             except Exception as e:
