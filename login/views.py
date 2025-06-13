@@ -826,15 +826,15 @@ def generar_imagenes_reportes_por_fecha(request):
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
-def generar_reportes_odf_asistencia_respaldo(request):
+def generar_reportes_odf_asistencia(request):
     asistencias = Asistencia.objects.all()
-    generar_pdfs_asistencias_por_estudiante_task.delay(asistencias)
+    generar_pdfs_asistencias_por_estudiante_task(asistencias)
     messages.success(request, "Se están generando los reportes para las asistencias en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
-def generar_reportes_odf_asistencia(request):
+def generar_reportes_odf_asistencia_3(request):
     asistencias = Asistencia.objects.all()
     generar_reportes_odf_asistencia_1(asistencias)
     messages.success(request, "Se están generando los reportes para las asistencias en segundo plano. Puedes continuar usando el sistema.")
