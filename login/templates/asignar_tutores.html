@@ -26,8 +26,9 @@
             </h3>
             <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
                 <input type="text" id="busqueda-estudiantes" placeholder="Buscar estudiante..." />
-                <label style="color: black;"><input type="checkbox" id="filtro-asignados" checked /> A</label>
-                <label style="color: black;"><input type="checkbox" id="filtro-desasignados" checked /> D</label>
+                <label><input type="checkbox" id="filtro-asignados" checked /> A</label>
+                <label><input type="checkbox" id="filtro-desasignados" checked /> N</label>
+
             </div>
             <ul style="color: black;">
                 {% for estudiante in estudiantes %}
@@ -130,14 +131,12 @@
 
         function setCheckboxHandlers() {
             document.getElementById('checkAllEstudiantes')?.addEventListener('change', function () {
-                document.getElementById('checkAllEstudiantes')?.addEventListener('change', function () {
                 document.querySelectorAll('.select-estudiante').forEach(cb => {
                     const li = cb.closest('li');
                     const visible = li.offsetParent !== null;
                     const habilitado = !cb.disabled;
                     cb.checked = this.checked && visible && habilitado;
                 });
-            });
             });
             document.getElementById('checkAllAsignados')?.addEventListener('change', function () {
                 document.querySelectorAll('.select-asignado').forEach(cb => cb.checked = this.checked);
@@ -147,10 +146,14 @@
         function setDragEvents() {
             document.querySelectorAll('li.estudiante').forEach(li => {
                 li.addEventListener('dragstart', e => {
-                    const selected = Array.from(document.querySelectorAll('.select-estudiante:checked, .select-asignado:checked'));
+                    let selected = Array.from(document.querySelectorAll('.select-estudiante:checked, .select-asignado:checked'));
+                    if (!selected.includes(li.querySelector('input'))) {
+                        selected = [li.querySelector('input')]; // Solo uno, el que se arrastró
+                    }
                     const ids = selected.map(cb => cb.parentElement.dataset.id);
                     e.dataTransfer.setData('ids', JSON.stringify(ids));
                 });
+
             });
         }
 
@@ -164,6 +167,10 @@
         listaTutor.addEventListener('dragover', e => e.preventDefault());
         listaTutor.addEventListener('drop', e => {
             e.preventDefault();
+            if (!tutorSeleccionadoId) {
+                alert("Selecciona un tutor antes de asignar.");
+                return;
+            }
             const ids = JSON.parse(e.dataTransfer.getData('ids'));
             Promise.all(ids.map(id =>
                 fetch('/asignar-estudiante/', {

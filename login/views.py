@@ -2270,8 +2270,10 @@ def login_view(request):
 @login_required
 def actualizar_datos(request):
     estudiante = request.user
-    if estudiante.tipo_estudiante == "administrador":  
+    if estudiante.tipo_estudiante == "administrador":
         base_template = "layouts/base.html"
+    elif estudiante.tipo_estudiante == "tutor":
+        base_template = "layouts/base_tutor.html"
     else:
         base_template = "layouts/base2.html"
     
