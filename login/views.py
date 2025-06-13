@@ -56,6 +56,15 @@ def vista_grafico_respuestas(request):
     estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante')
     return render(request, 'grafico_respuestas.html', {'estudiantes': estudiantes, 'base_template': base_template})
 
+
+@login_required
+@estudiante_tipo_requerido(['tutor'])
+def vista_grafico_respuestas_tutor(request):
+    usuario_actual = request.user
+    base_template = "layouts/base_tutor.html"
+    estudiantes = Estudiante.objects.filter(tipo_estudiante='estudiante', tutor_id = usuario_actual)
+    return render(request, 'grafico_respuestas.html', {'estudiantes': estudiantes, 'base_template': base_template})
+
 def obtener_reportes_resumen(request):
     usuario = request.GET.get('usuario')
     curso = request.GET.get('curso')
