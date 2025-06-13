@@ -39,7 +39,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
 from .models import Reporte, Estudiante
 from datetime import datetime
-from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task
+from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
 
 @login_required
@@ -511,17 +511,17 @@ def editar_variable_control(request):
 
             # Obtener cantidades
             Cantidad_Preguntas_Pre = [
-                variable_control.Ar_Pre, variable_control.Bio_Pre, variable_control.Ec_Pre, variable_control.Fil_Pre,
-                variable_control.Fi_Pre, variable_control.Geog_Pre, variable_control.Geom_Pre, variable_control.Hi_Pre,
-                variable_control.Le_Pre, variable_control.Lit_Pre, variable_control.Psi_Pre, variable_control.Qui_Pre,
-                variable_control.Rm_Pre, variable_control.Rv_Pre, variable_control.Trig_Pre, variable_control.Al_Pre
+                variable_control.Ar_Pre, variable_control.Bi_Pre, variable_control.Ec_Pre, variable_control.Fil_Pre,
+                variable_control.Fi_Pre, variable_control.Gf_Pre, variable_control.Ge_Pre, variable_control.Hi_Pre,
+                variable_control.Le_Pre, variable_control.Lit_Pre, variable_control.Psi_Pre, variable_control.Qu_Pre,
+                variable_control.Rm_Pre, variable_control.Rv_Pre, variable_control.Tr_Pre, variable_control.Al_Pre
             ]
 
             Cantidad_Preguntas_Sem = [
-                variable_control.Ar_Sem, variable_control.Bio_Sem, variable_control.Ec_Sem, variable_control.Fil_Sem,
-                variable_control.Fi_Sem, variable_control.Geog_Sem, variable_control.Geom_Sem, variable_control.Hi_Sem,
-                variable_control.Le_Sem, variable_control.Lit_Sem, variable_control.Psi_Sem, variable_control.Qui_Sem,
-                variable_control.Rm_Sem, variable_control.Rv_Sem, variable_control.Trig_Sem, variable_control.Al_Sem
+                variable_control.Ar_Sem, variable_control.Bi_Sem, variable_control.Ec_Sem, variable_control.Fil_Sem,
+                variable_control.Fi_Sem, variable_control.Gf_Sem, variable_control.Ge_Sem, variable_control.Hi_Sem,
+                variable_control.Le_Sem, variable_control.Lit_Sem, variable_control.Psi_Sem, variable_control.Qu_Sem,
+                variable_control.Rm_Sem, variable_control.Rv_Sem, variable_control.Tr_Sem, variable_control.Al_Sem
             ]
             # Generar imágenes
             generar_plantilla(Cantidad_Preguntas_Pre, 'plantilla-notas-pre.png')
@@ -538,17 +538,17 @@ def editar_variable_control(request):
     # Diccionario de nombres personalizados
     field_labels = {
         'Rm_Pre': 'Raz. Matemático', 'Rv_Pre': 'Raz. Verbal', 'Ar_Pre': 'Aritmética',
-        'Al_Pre': 'Álgebra', 'Geom_Pre': 'Geometría', 'Trig_Pre': 'Trigonometría',
-        'Fi_Pre': 'Física', 'Qui_Pre': 'Química', 'Bio_Pre': 'Biología',
+        'Al_Pre': 'Álgebra', 'Ge_Pre': 'Geometría', 'Tr_Pre': 'Trigonometría',
+        'Fi_Pre': 'Física', 'Qu_Pre': 'Química', 'Bi_Pre': 'Biología',
         'Le_Pre': 'Lenguaje', 'Lit_Pre': 'Literatura', 'Hi_Pre': 'Historia',
-        'Geog_Pre': 'Geografía', 'Fil_Pre': 'Filosofía', 'Psi_Pre': 'Psicología',
+        'Gf_Pre': 'Geografía', 'Fil_Pre': 'Filosofía', 'Psi_Pre': 'Psicología',
         'Ec_Pre': 'Economía',
 
         'Rm_Sem': 'Raz. Matemático', 'Rv_Sem': 'Raz. Verbal', 'Ar_Sem': 'Aritmética',
-        'Al_Sem': 'Álgebra', 'Geom_Sem': 'Geometría', 'Trig_Sem': 'Trigonometría',
-        'Fi_Sem': 'Física', 'Qui_Sem': 'Química', 'Bio_Sem': 'Biología',
+        'Al_Sem': 'Álgebra', 'Ge_Sem': 'Geometría', 'Tr_Sem': 'Trigonometría',
+        'Fi_Sem': 'Física', 'Qu_Sem': 'Química', 'Bi_Sem': 'Biología',
         'Le_Sem': 'Lenguaje', 'Lit_Sem': 'Literatura', 'Hi_Sem': 'Historia',
-        'Geog_Sem': 'Geografía', 'Fil_Sem': 'Filosofía', 'Psi_Sem': 'Psicología',
+        'Gf_Sem': 'Geografía', 'Fil_Sem': 'Filosofía', 'Psi_Sem': 'Psicología',
         'Ec_Sem': 'Economía',
 
         'EntradaManana': 'Entrada Mañana', 'SalidaManana': 'Salida Mañana',
@@ -560,14 +560,14 @@ def editar_variable_control(request):
     }
 
     preguntas_pre = [
-        'Rm_Pre', 'Rv_Pre', 'Ar_Pre', 'Al_Pre', 'Geom_Pre', 'Trig_Pre',
-        'Fi_Pre', 'Qui_Pre', 'Bio_Pre', 'Le_Pre', 'Lit_Pre', 'Hi_Pre',
-        'Geog_Pre', 'Fil_Pre', 'Psi_Pre', 'Ec_Pre'
+        'Rm_Pre', 'Rv_Pre', 'Ar_Pre', 'Al_Pre', 'Ge_Pre', 'Tr_Pre',
+        'Fi_Pre', 'Qu_Pre', 'Bi_Pre', 'Le_Pre', 'Lit_Pre', 'Hi_Pre',
+        'Gf_Pre', 'Fil_Pre', 'Psi_Pre', 'Ec_Pre'
     ]
     preguntas_sem = [
-        'Rm_Sem', 'Rv_Sem', 'Ar_Sem', 'Al_Sem', 'Geom_Sem', 'Trig_Sem',
-        'Fi_Sem', 'Qui_Sem', 'Bio_Sem', 'Le_Sem', 'Lit_Sem', 'Hi_Sem',
-        'Geog_Sem', 'Fil_Sem', 'Psi_Sem', 'Ec_Sem'
+        'Rm_Sem', 'Rv_Sem', 'Ar_Sem', 'Al_Sem', 'Ge_Sem', 'Tr_Sem',
+        'Fi_Sem', 'Qu_Sem', 'Bi_Sem', 'Le_Sem', 'Lit_Sem', 'Hi_Sem',
+        'Gf_Sem', 'Fil_Sem', 'Psi_Sem', 'Ec_Sem'
     ]
     horarios = [
         'EntradaManana', 'SalidaManana', 'EntradaTarde',
@@ -824,7 +824,86 @@ def generar_imagenes_reportes_por_fecha(request):
     messages.success(request, "Se están generando las imágenes en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def generar_reportes_odf_asistencia_respaldo(request):
+    asistencias = Asistencia.objects.all()
+    generar_pdfs_asistencias_por_estudiante_task.delay(asistencias)
+    messages.success(request, "Se están generando los reportes para las asistencias en segundo plano. Puedes continuar usando el sistema.")
+    return redirect('seleccionar_fecha_generacion')
 
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def generar_reportes_odf_asistencia(request):
+    asistencias = Asistencia.objects.all()
+    generar_reportes_odf_asistencia_1(asistencias)
+    messages.success(request, "Se están generando los reportes para las asistencias en segundo plano. Puedes continuar usando el sistema.")
+    return redirect('seleccionar_fecha_generacion')
+
+def generar_reportes_odf_asistencia_1(asistencias_queryset):
+    #asistencias_queryset = Asistencia.objects.all()
+    carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "asistencias")
+    os.makedirs(carpeta, exist_ok=True)
+
+    # Agrupamos asistencias por usuario
+    asistencias_por_usuario = defaultdict(list)
+    for a in asistencias_queryset.order_by('KK_usuario__usuario', 'Fecha', 'Hora'):
+        asistencias_por_usuario[a.KK_usuario.usuario].append(a)
+
+    for usuario, asistencias_usuario in asistencias_por_usuario.items():
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=landscape(A4))
+        width, height = landscape(A4)
+
+        def dibujar_encabezado(y_pos):
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(30, height - 40, f"Reporte de Asistencias - {usuario}")
+
+            headers = ["Usuario", "Nombre", "Fecha", "Hora", "Nro Marca", "Modalidad", "Observación"]
+            x_positions = [30, 80, 310, 390, 470, 550, 650]
+            p.setFont("Helvetica-Bold", 10)
+            for i, header in enumerate(headers):
+                p.drawString(x_positions[i], y_pos, header)
+            return y_pos - 25
+
+        y = dibujar_encabezado(height - 80)
+        p.setFont("Helvetica", 10)
+
+        # Agrupamos por (usuario, fecha) para asignar Nro Marca
+        agrupadas = defaultdict(list)
+        for a in asistencias_usuario:
+            clave = (a.KK_usuario.usuario, a.Fecha)
+            agrupadas[clave].append(a)
+
+        for grupo in agrupadas.values():
+            for i, a in enumerate(grupo, start=1):
+                datos = [
+                    a.KK_usuario.usuario,
+                    a.KK_usuario.nombre,
+                    a.Fecha.strftime('%d/%m/%Y'),
+                    a.Hora,
+                    "ENTRADA" if i in [1, 3] else "SALIDA",
+                    a.Modalidad,
+                    a.Observacion or "-"
+                ]
+                x_positions = [30, 80, 310, 390, 470, 550, 650]
+                for j, valor in enumerate(datos):
+                    p.drawString(x_positions[j], y, str(valor))
+                y -= 20
+
+                if y < 40:
+                    p.showPage()
+                    y = dibujar_encabezado(height - 50)
+                    p.setFont("Helvetica", 10)
+
+        p.save()
+        buffer.seek(0)
+
+        # Guardamos el archivo
+        nombre_archivo = f"{usuario}_reporte_asistencia.pdf"
+        ruta_archivo = os.path.join(carpeta, nombre_archivo)
+        with open(ruta_archivo, 'wb') as f:
+            f.write(buffer.getbuffer())
 
 def generar_imagenes_reportes_por_fecha_respaldo(request, fecha):
     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()

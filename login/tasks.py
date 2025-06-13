@@ -3,13 +3,17 @@
 from celery import shared_task, states
 from celery.exceptions import Ignore
 from datetime import datetime
-from .models import Estudiante, Reporte
+from .models import Estudiante, Reporte, Asistencia
 import os
 from django.conf import settings
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import pandas as pd
 import math
+from collections import defaultdict
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from io import BytesIO
 
 
 @shared_task(bind=True)
@@ -300,18 +304,82 @@ def obtener_preguntas_por_curso(nivel):
         "Razonamiento Matemático": v.Rm_Sem if nivel == 30 else v.Rm_Pre,
         "Aritmética": v.Ar_Sem if nivel == 30 else v.Ar_Pre,
         "Álgebra": v.Al_Sem if nivel == 30 else v.Al_Pre,
-        "Geometría": v.Geom_Sem if nivel == 30 else v.Geom_Pre,
-        "Trigonometría": v.Trig_Sem if nivel == 30 else v.Trig_Pre,
+        "Geometría": v.Ge_Sem if nivel == 30 else v.Ge_Pre,
+        "Trigonometría": v.Tr_Sem if nivel == 30 else v.Tr_Pre,
         "Física": v.Fi_Sem if nivel == 30 else v.Fi_Pre,
-        "Química": v.Qui_Sem if nivel == 30 else v.Qui_Pre,
-        "Biología": v.Bio_Sem if nivel == 30 else v.Bio_Pre,
+        "Química": v.Qu_Sem if nivel == 30 else v.Qu_Pre,
+        "Biología": v.Bi_Sem if nivel == 30 else v.Bi_Pre,
         "Lenguaje": v.Le_Sem if nivel == 30 else v.Le_Pre,
         "Literatura": v.Lit_Sem if nivel == 30 else v.Lit_Pre,
         "Historia": v.Hi_Sem if nivel == 30 else v.Hi_Pre,
-        "Geografía": v.Geog_Sem if nivel == 30 else v.Geog_Pre,
+        "Geografía": v.Gf_Sem if nivel == 30 else v.Gf_Pre,
         "Filosofía": v.Fil_Sem if nivel == 30 else v.Fil_Pre,
         "Psicología": v.Psi_Sem if nivel == 30 else v.Psi_Pre,
         "Economía": v.Ec_Sem if nivel == 30 else v.Ec_Pre,
     }
 
     return cursos
+
+def generar_pdfs_asistencias_por_estudiante_task(asistencias_queryset):
+    carpeta = os.path.join(settings.MEDIA_ROOT, "reportes", "asistencias")
+    os.makedirs(carpeta, exist_ok=True)
+
+    # Agrupamos asistencias por usuario
+    asistencias_por_usuario = defaultdict(list)
+    for a in asistencias_queryset.order_by('KK_usuario__usuario', 'Fecha', 'Hora'):
+        asistencias_por_usuario[a.KK_usuario.usuario].append(a)
+
+    for usuario, asistencias_usuario in asistencias_por_usuario.items():
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=landscape(A4))
+        width, height = landscape(A4)
+
+        def dibujar_encabezado(y_pos):
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(30, height - 40, f"Reporte de Asistencias - {usuario}")
+
+            headers = ["Usuario", "Nombre", "Fecha", "Hora", "Nro Marca", "Modalidad", "Observación"]
+            x_positions = [30, 80, 310, 390, 470, 550, 650]
+            p.setFont("Helvetica-Bold", 10)
+            for i, header in enumerate(headers):
+                p.drawString(x_positions[i], y_pos, header)
+            return y_pos - 25
+
+        y = dibujar_encabezado(height - 80)
+        p.setFont("Helvetica", 10)
+
+        # Agrupamos por (usuario, fecha) para asignar Nro Marca
+        agrupadas = defaultdict(list)
+        for a in asistencias_usuario:
+            clave = (a.KK_usuario.usuario, a.Fecha)
+            agrupadas[clave].append(a)
+
+        for grupo in agrupadas.values():
+            for i, a in enumerate(grupo, start=1):
+                datos = [
+                    a.KK_usuario.usuario,
+                    a.KK_usuario.nombre,
+                    a.Fecha.strftime('%d/%m/%Y'),
+                    a.Hora,
+                    "ENTRADA" if i in [1, 3] else "SALIDA",
+                    a.Modalidad,
+                    a.Observacion or "-"
+                ]
+                x_positions = [30, 80, 310, 390, 470, 550, 650]
+                for j, valor in enumerate(datos):
+                    p.drawString(x_positions[j], y, str(valor))
+                y -= 20
+
+                if y < 40:
+                    p.showPage()
+                    y = dibujar_encabezado(height - 50)
+                    p.setFont("Helvetica", 10)
+
+        p.save()
+        buffer.seek(0)
+
+        # Guardamos el archivo
+        nombre_archivo = f"{usuario}_reporte_asistencia.pdf"
+        ruta_archivo = os.path.join(carpeta, nombre_archivo)
+        with open(ruta_archivo, 'wb') as f:
+            f.write(buffer.getbuffer())
