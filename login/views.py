@@ -42,6 +42,7 @@ from datetime import datetime
 from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
 
+
 @login_required
 def vista_grafico_estudiante(request):
     base_template = "layouts/base2.html"
@@ -1587,6 +1588,12 @@ def eliminar_estudiantes_masivo(request):
 def agregar_observacion(request, estudiante_id):
     usuario_actual = request.user
 
+
+    if usuario_actual.tipo_estudiante == 'administrador':
+        url_volver = reverse('lista_estudiantes')
+    else:
+        url_volver = reverse('tutorados')
+
     if usuario_actual.tipo_estudiante == "administrador":
         base_template = "layouts/base.html"
     elif usuario_actual.tipo_estudiante == "tutor":
@@ -1607,6 +1614,7 @@ def agregar_observacion(request, estudiante_id):
         except ValueError:
             return HttpResponseBadRequest("Formato de fecha inválido")
 
+
     if request.method == 'POST':
         observacion = request.POST.get('observacion')
         if not fecha_obj:
@@ -1616,11 +1624,16 @@ def agregar_observacion(request, estudiante_id):
         if reporte:
             reporte.Observacion = observacion
             reporte.save()
-            return redirect('lista_estudiantes')  # o a donde quieras redirigir
+            if usuario_actual.tipo_estudiante == 'administrador':
+                return redirect('lista_estudiantes')  # o a donde quieras redirigir
+            else:
+                return redirect('tutorados')
         else:
             return HttpResponseBadRequest("No se encontró el reporte para esa fecha")
 
+
     return render(request, 'agregar_observacion.html', {
+        'url_volver': url_volver,
         'estudiante': estudiante,
         'reportes': reportes,
         'base_template': base_template,

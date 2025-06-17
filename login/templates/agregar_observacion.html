@@ -37,7 +37,7 @@
             <textarea name="observacion" id="observacion" rows="5" class="form-control">{{ reporte_seleccionado.Observacion }}</textarea>
         </div>
         <button type="submit" class="btn btn-success">Guardar Observación</button>
-        <a href="{% url 'lista_estudiantes' %}" class="btn btn-secondary">Volver</a>
+        <a href="{{ url_volver }}" class="btn btn-secondary">Volver</a>
     </form>
     {% endif %}
 
