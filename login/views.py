@@ -1483,15 +1483,18 @@ def ver_todas_asistencias(request):
     asistencias_qs = Asistencia.objects.all().select_related('KK_usuario').order_by('-Fecha', '-Hora')
     ultima_asistencia_presencial = asistencias_qs.filter(Modalidad='PRESENCIAL').first()
     ultima_fecha = None
+
     if ultima_asistencia_presencial:
         try:
             fecha = (ultima_asistencia_presencial.Fecha 
                     if not isinstance(ultima_asistencia_presencial.Fecha, str) 
                     else datetime.strptime(ultima_asistencia_presencial.Fecha, "%Y-%m-%d").date())
 
-            hora = (ultima_asistencia_presencial.Hora 
-                    if not isinstance(ultima_asistencia_presencial.Hora, str) 
-                    else datetime.strptime(ultima_asistencia_presencial.Hora, "%H:%M:%S").time())
+            hora = (
+                    ultima_asistencia_presencial.Hora
+                    if not isinstance(ultima_asistencia_presencial.Hora, str)
+                    else datetime.strptime(ultima_asistencia_presencial.Hora, "%H:%M").time()
+)
 
             ultima_fecha = f"{fecha.strftime('%d/%m/%Y')} a las {hora.strftime('%H:%M')}"
         except Exception as e:

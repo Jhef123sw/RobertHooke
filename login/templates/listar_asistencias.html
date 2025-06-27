@@ -20,7 +20,7 @@
     </div>
     {% if ultima_fecha %}
         <div>
-            <strong style="color: black;">El último registro de asistencia fue:</strong> {{ ultima_fecha }}
+            <strong style="color: black;">El último registro de asistencia presencial fue: {{ ultima_fecha }}</strong>
         </div>
     {% endif %}
     <form method="post" action="{% url 'acciones_asistencias' %}" id="formAsistenciasSeleccionadas">
