@@ -1484,7 +1484,18 @@ def ver_todas_asistencias(request):
     ultima_asistencia_presencial = asistencias_qs.filter(Modalidad='PRESENCIAL').first()
     ultima_fecha = None
     if ultima_asistencia_presencial:
-        ultima_fecha = f"{ultima_asistencia_presencial.Fecha.strftime('%d/%m/%Y')} a las {ultima_asistencia_presencial.Hora.strftime('%H:%M')}"
+        try:
+            fecha = (ultima_asistencia_presencial.Fecha 
+                    if not isinstance(ultima_asistencia_presencial.Fecha, str) 
+                    else datetime.strptime(ultima_asistencia_presencial.Fecha, "%Y-%m-%d").date())
+
+            hora = (ultima_asistencia_presencial.Hora 
+                    if not isinstance(ultima_asistencia_presencial.Hora, str) 
+                    else datetime.strptime(ultima_asistencia_presencial.Hora, "%H:%M:%S").time())
+
+            ultima_fecha = f"{fecha.strftime('%d/%m/%Y')} a las {hora.strftime('%H:%M')}"
+        except Exception as e:
+            ultima_fecha = None  # En caso de error, lo ocultamos
 
     # Aplica filtros antes del slice
     if fecha_filtrada:
