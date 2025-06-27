@@ -1,9 +1,22 @@
 from django.db import models
 
+class curso(models.Model):
+    CURSOS = [
+        ('Rv', 'Razonamiento Verbal'), ('Rm', 'Razonamiento Matemático'), ('Ar', 'Aritmética'),
+        ('Al', 'Álgebra'), ('Ge', 'Geometría'), ('Tr', 'Trigonometría'), ('Fi', 'Física'), 
+        ('Qu', 'Química'), ('Bi', 'Biología'), ('Le', 'Lenguaje'), ('Lit', 'Literatura'), 
+        ('Hi', 'Historia'), ('Gf', 'Geografía'), ('Fil', 'Filosofía'), ('Psi', 'Psicología'), 
+        ('Ec', 'Ecología')
+    ]
+    nombreCurso = models.CharField(max_length=40, choices=CURSOS)
+    estudiante = models.ForeignKey('Estudiante', null=True, blank=True, on_delete=models.SET_NULL, related_name='cursos')
+
+    def __str__(self):
+        return f"{self.get_nombreCurso_display()} - {self.estudiante.usuario if self.estudiante else 'Sin estudiante'}"
 
 class Estudiante(models.Model):
     PERMISOS_USUARIO = [
-        ('estudiante', 'Estudiante'), ('administrador', 'Administrador'), ('tutor', 'Tutor')
+        ('estudiante', 'Estudiante'), ('administrador', 'Administrador'), ('tutor', 'Tutor'), ('profesor', 'Profesor')
     ]
     tutor = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='tutorados')
     DATOS_ACTUALIZADOS = [
@@ -35,6 +48,10 @@ class Estudiante(models.Model):
     grado = models.IntegerField(choices=GRADO_ESTUDIANTE, default=1)
     ciudad = models.CharField(max_length=30, default="")
     carrera = models.CharField(max_length=30, default="")
+    ruc = models.CharField(max_length=11, default="")
+    fechaCumple = models.DateField(default='1930-01-01')
+    numCel2 = models.CharField(max_length=9, default="")
+    gmail = models.CharField(max_length=70, default="")
     def __str__(self):
         return self.usuario
 

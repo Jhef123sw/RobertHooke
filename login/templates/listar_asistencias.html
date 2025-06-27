@@ -18,7 +18,11 @@
             </div>
         </form>
     </div>
-
+    {% if ultima_fecha %}
+        <div>
+            <strong style="color: black;">El último registro de asistencia fue:</strong> {{ ultima_fecha }}
+        </div>
+    {% endif %}
     <form method="post" action="{% url 'acciones_asistencias' %}" id="formAsistenciasSeleccionadas">
         {% csrf_token %}
         <div class="acciones-superiores mt-3 d-flex gap-2">
@@ -29,7 +33,6 @@
                 Registrar asistencia
             </a>
         </div>
-
         <div class="tabla-asistencias contenedor-graficos">
             <table class="table table-bordered table-hover bg-white shadow-sm">
                 <thead class="table-light">

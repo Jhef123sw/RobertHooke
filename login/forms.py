@@ -41,6 +41,7 @@ class ActualizarDatosForm(forms.ModelForm):
         (5, '5° de Secundaria'),
         (6, 'Egresado'),
     ]
+    gmail = forms.CharField(required=True, label="Correo electrónico")
     nombre = forms.CharField(required=True, label="¿Tu nombre está bien escrito?")
     colegio = forms.CharField(required=True, label="¿En qué colegio estudias o estudiaste?")
     grado = forms.ChoiceField(
@@ -55,7 +56,7 @@ class ActualizarDatosForm(forms.ModelForm):
     carrera = forms.CharField(required=True, label="¿A qué carrera deseas postular?")
     class Meta:
         model = Estudiante
-        fields = ['nombre','colegio', 'grado', 'ciudad', 'numCelular', 'instagram', 'facebook', 'carrera']
+        fields = ['gmail', 'nombre','colegio', 'grado', 'ciudad', 'numCelular', 'instagram', 'facebook', 'carrera']
 
 class AsistenciaForm(forms.ModelForm):
     MODALIDAD_CHOICES = [
@@ -64,6 +65,26 @@ class AsistenciaForm(forms.ModelForm):
     class Meta:
         model = Asistencia
         fields = ['KK_usuario', 'Fecha', 'Observacion', 'Modalidad']
+
+
+class ActualizarDatosFormProf(forms.ModelForm):
+    nombre = forms.CharField(required=True, label="¿Su nombre está bien escrito?")
+    ruc = forms.CharField(required=True, label="Ingrese su RUC")
+    ciudad = forms.CharField(required=True, label="Ciudad de origen")
+    numCelular = forms.CharField(required=True, label="Número de celular (Que tenga Whatsapp)")
+    numCel2 = forms.CharField(required=True, label="Número alternativo")
+    instagram = forms.CharField(required=True, label="¿Cómo te encontramos en instagram?")
+    facebook = forms.CharField(required=True, label="¿Cómo te encontramos en Facebook?")
+    gmail = forms.CharField(required=True, label="Correo electrónico")
+    fechaCumple = forms.DateField(
+        required=True,
+        label="Ingrese su fecha de nacimiento",
+        widget=forms.DateInput(attrs={'type': 'date'})
+    )
+    class Meta:
+        model = Estudiante
+        fields = ['nombre', 'ruc', 'ciudad', 'numCelular', 'numCel2', 'instagram', 'facebook', 'gmail', 'fechaCumple']
+
 
 
 class AsistenciaForm2(forms.ModelForm):

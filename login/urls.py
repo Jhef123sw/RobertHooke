@@ -1,7 +1,17 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea, vista_grafico_respuestas, obtener_reportes_resumen, vista_grafico_estudiante, generar_reportes_odf_asistencia, vista_grafico_respuestas_tutor
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea, vista_grafico_respuestas, obtener_reportes_resumen, vista_grafico_estudiante, generar_reportes_odf_asistencia, vista_grafico_respuestas_tutor, listar_profesores, crear_profesor, asignar_curso, asignar_cursos_profesor, obtener_cursos_profesor, obtener_todos_los_cursos, desasignar_curso
 
 urlpatterns = [
+    #Profesores
+    path('profesores/', listar_profesores, name='listar_profesores'),
+    path('crear-profesor/', crear_profesor, name='crear_profesor'),
+    path('asignar-cursos/', asignar_cursos_profesor, name='asignar_cursos'),
+    path('obtener-cursos-profesor/<int:profesor_id>/', obtener_cursos_profesor, name='obtener_cursos_profesor'),
+    path('obtener-todos-cursos/', obtener_todos_los_cursos, name='obtener_todos_los_cursos'),
+    path('asignar-curso/', asignar_curso, name='asignar_curso'),
+    path('desasignar-curso/', desasignar_curso, name='desasignar_curso'),
+
+    #
     path('iniciar-tarea-reportes/', iniciar_tarea_reportes, name='iniciar_tarea_reportes'),
     path('estado-tarea/<str:task_id>/', obtener_estado_tarea, name='obtener_estado_tarea'),
     path('grafico-respuestas/', vista_grafico_respuestas, name='grafico_respuestas'),

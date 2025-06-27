@@ -27,7 +27,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from .models import Estudiante, Reporte, Asistencia, VariableControl
-from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2, VariableControlForm
+from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2, VariableControlForm, ActualizarDatosFormProf
 from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
@@ -37,12 +37,113 @@ import math
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
-from .models import Reporte, Estudiante
+from .models import Reporte, Estudiante, curso
 from datetime import datetime
 from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
+#################PROFESORES
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def crear_profesor(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        usuario = request.POST.get('usuario')
+        contraseña = request.POST.get('contraseña')
+
+        if Estudiante.objects.filter(usuario=usuario).exists():
+            return render(request, 'crear_tutor.html', {
+                'mensaje': 'El nombre de usuario ya existe.'
+            })
+
+        Estudiante.objects.create(
+            nombre=nombre,
+            usuario=usuario,
+            contraseña=contraseña,
+            tipo_estudiante='profesor',
+            is_active=True,
+            is_staff=False,
+        )
+        return redirect('listar_profesores')
+
+    return render(request, 'crear_tutor.html', {
+        'base_template': base_template,
+    })
 
 
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def listar_profesores(request):
+    usuario_actual = request.user
+    base_template = "layouts/base.html" if usuario_actual.tipo_estudiante == "administrador" else "layouts/base2.html"
+    profesores = Estudiante.objects.filter(tipo_estudiante='profesor')
+    return render(request, 'listar_profesores.html', {
+        'tutores': profesores,
+        'base_template': base_template,
+    })
+
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def asignar_cursos_profesor(request):
+    base_template = "layouts/base.html"
+    profesores = Estudiante.objects.filter(tipo_estudiante='profesor')
+    cursos = curso.objects.all()
+    return render(request, 'asignar_cursos.html', {
+        'base_template': base_template,
+        'profesores': profesores,
+        'cursos': cursos,
+    })
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def obtener_cursos_profesor(request, profesor_id):
+    prof = get_object_or_404(Estudiante, pk=profesor_id, tipo_estudiante='profesor')
+    cursos = prof.cursos.all().values('id', 'nombreCurso')
+    return JsonResponse(list(cursos), safe=False)
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def obtener_todos_los_cursos(request):
+    cursos = curso.objects.all().select_related('estudiante')
+    data = [{
+        'id': c.id,
+        'nombreCurso': c.get_nombreCurso_display(),
+        'profesor': c.estudiante.usuario if c.estudiante else None,
+    } for c in cursos]
+    return JsonResponse(data, safe=False)
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+@require_POST
+def asignar_curso(request):
+    curso_id = request.POST.get('curso_id')
+    profesor_id = request.POST.get('profesor_id')
+    curso = get_object_or_404(curso, pk=curso_id)
+    profesor = get_object_or_404(Estudiante, pk=profesor_id, tipo_estudiante='profesor')
+    curso.estudiante = profesor
+    curso.save()
+    return JsonResponse({'ok': True})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+@require_POST
+def desasignar_curso(request):
+    curso_id = request.POST.get('curso_id')
+    curso = get_object_or_404(curso, pk=curso_id)
+    curso.estudiante = None
+    curso.save()
+    return JsonResponse({'ok': True})
+
+
+
+
+
+
+
+
+#################3
 @login_required
 def vista_grafico_estudiante(request):
     base_template = "layouts/base2.html"
@@ -156,6 +257,8 @@ def obtener_todos_los_estudiantes(request):
     ]
     return JsonResponse(data, safe=False)
 
+
+
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def crear_tutor(request):
@@ -179,10 +282,7 @@ def crear_tutor(request):
             is_active=True,
             is_staff=False,
         )
-        return render(request, 'listar_tutores.html', {
-            'base_template': base_template,
-            'mensaje': 'Tutor creado exitosamente.'
-        })
+        return redirect('listar_tutores')
 
     return render(request, 'crear_tutor.html', {
         'base_template': base_template,
@@ -1381,6 +1481,10 @@ def ver_todas_asistencias(request):
     query = request.GET.get('q', '').strip()
 
     asistencias_qs = Asistencia.objects.all().select_related('KK_usuario').order_by('-Fecha', '-Hora')
+    ultima_asistencia_presencial = asistencias_qs.filter(Modalidad='PRESENCIAL').first()
+    ultima_fecha = None
+    if ultima_asistencia_presencial:
+        ultima_fecha = f"{ultima_asistencia_presencial.Fecha.strftime('%d/%m/%Y')} a las {ultima_asistencia_presencial.Hora.strftime('%H:%M')}"
 
     # Aplica filtros antes del slice
     if fecha_filtrada:
@@ -1435,6 +1539,7 @@ def ver_todas_asistencias(request):
         "asistencias": datos,
         "fecha_filtrada": fecha_filtrada,
         "query": query,
+        "ultima_fecha": ultima_fecha,
         "base_template": "layouts/base.html"
     })
 
@@ -2368,6 +2473,7 @@ def login_view(request):
     
     return render(request, 'registration/login.html', {'form': form}, {'user': user})
 
+
 @login_required
 def actualizar_datos(request):
     estudiante = request.user
@@ -2375,26 +2481,32 @@ def actualizar_datos(request):
         base_template = "layouts/base.html"
     elif estudiante.tipo_estudiante == "tutor":
         base_template = "layouts/base_tutor.html"
+    elif estudiante.tipo_estudiante == "profesor":
+        base_template = "layouts/base_profesor.html"
     else:
         base_template = "layouts/base2.html"
     
     estudiante = get_object_or_404(Estudiante, pk=estudiante.ID_Estudiante)
-
     if request.method == 'POST':
-        form = ActualizarDatosForm(request.POST, instance=estudiante)
+        if estudiante.tipo_estudiante == 'estudiante':
+            form = ActualizarDatosForm(request.POST, instance=estudiante)
+        else:
+            form = ActualizarDatosFormProf(request.POST,instance=estudiante)
         if form.is_valid():
             estudiante.actualizado = "actualizado"
             form.save()
             return redirect(reverse('actualizar_datos') + '?exito=1')
     else:
-        form = ActualizarDatosForm(instance=estudiante)
+        if estudiante.tipo_estudiante == 'estudiante':
+            form = ActualizarDatosForm(instance=estudiante)
+        else:
+            form = ActualizarDatosFormProf(instance=estudiante)
     
     return render(request, 'actualizar_datos.html', {
         'base_template': base_template,
         'form': form,
         'exito': request.GET.get('exito') == '1'
     })
-
 
 
 @login_required

@@ -13,9 +13,9 @@
 <body>
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Listado de Tutores</h2>
-        <a href="{% url 'crear_tutor' %}" class="btn btn-primary">+ Crear Tutor</a>
-        <a href="{% url 'asignar_tutores' %}" class="btn btn-primary">Administrarlos</a>
+        <h2>Listado de Profesores</h2>
+        <a href="{% url 'crear_profesor' %}" class="btn btn-primary">+ Crear Profesor</a>
+        <a href="{% url 'asignar_cursos' %}" class="btn btn-primary">Administrarlos</a>
     </div>
 
     <table class="table table-bordered table-hover">
@@ -40,7 +40,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center">No hay tutores registrados.</td>
+                    <td colspan="4" class="text-center">No hay profesores registrados.</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -56,7 +56,7 @@
             if (target.classList.contains('btn-eliminar')) {
                 event.preventDefault(); // Evita que el enlace redirija inmediatamente
                 const estudianteId = target.getAttribute('data-id');
-                if (confirm("¿Estás seguro de que deseas eliminar este tutor?")) {
+                if (confirm("¿Estás seguro de que deseas eliminar este profesor?")) {
                     window.location.href = `/reportes/estudiantes/eliminar/${estudianteId}/`;
                 }
             }
