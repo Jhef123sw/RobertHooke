@@ -1,0 +1,57 @@
+.contenedor-reportes {
+    max-width: 1000px;
+    margin: auto;
+    padding: 20px;
+    text-align: center;
+}
+
+.titulo-reportes {
+    color: white;
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.mensaje-usuario {
+    font-size: 1.1em;
+    color: white;
+    margin-bottom: 20px;
+}
+
+.contenedor-graficos-reportes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.grafico-reportes {
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.grafico-reportes h3 {
+    color: black;
+    margin-bottom: 10px;
+}
+
+.grafico-reportes img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .contenedor-graficos-reportes {
+        grid-template-columns: 1fr;
+    }
+
+    .titulo-reportes {
+        font-size: 1.6em;
+    }
+
+    .mensaje-usuario {
+        font-size: 1em;
+    }
+}

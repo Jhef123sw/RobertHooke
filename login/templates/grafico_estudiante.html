@@ -1,16 +1,11 @@
 {% extends base_template %}
 {% block content %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Mi Evolución</title>
-    <link rel="stylesheet" href="{% static 'css/grafico.css' %}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-    <div class="container">
+
+<title>Mi Evolución</title>
+<link rel="stylesheet" href="{% static 'css/grafico.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<div class="container mt-4">
         <input type="hidden" id="estudiante" value="{{ usuario.usuario }}">
         <select id="curso">
             <option value="">Selecciona un curso</option>
@@ -38,10 +33,14 @@
             <label style="color: black;"><input type="checkbox" id="chk_blancas" checked> En blanco</label>
         </div>
 
-        <canvas id="grafico"></canvas>
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card p-3">
+                    <canvas id="grafico" style="width: 100%; height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="{% static 'js/grafico_estudiante.js' %}"></script>
-</body>
-</html>
+<script src="{% static 'js/grafico_estudiante.js' %}"></script>
 {% endblock %}

@@ -99,7 +99,7 @@ body, html {
 @media (max-width: 768px) {
     .sidebar {
         position: absolute;
-        height: 100%;
+        height: 130%;
         transform: translateX(-100%);
         z-index: 999;
     }

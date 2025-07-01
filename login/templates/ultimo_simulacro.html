@@ -1,71 +1,32 @@
 {% extends base_template %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes - Puesto y Puntaje</title>
-    <style>
-        /* Contenedor principal */
-        .contenedor {
-            max-width: 900px;
-            margin: auto;
-            text-align: center;
-        }
+{% load static %}
+<link rel="stylesheet" href="{% static 'login/ultimo_simulacro.css' %}">
+<div class="contenedor-reportes">
+    <h1 class="titulo-reportes">Evolución del Puesto y Puntaje</h1>
+    <p class="mensaje-usuario">
+        {% if ultimo_puntaje %}
+            Hola {{ nombre_usuario }}, tu puntaje en el último simulacro fue <strong>{{ ultimo_puntaje }}</strong> puntos.
+        {% else %}
+            No se han registrado puntajes aún.
+        {% endif %}
+    </p>
 
-        h1 {
-            color: white;
-        }
-
-        /* Contenedor de gráficos en 2 columnas */
-        .contenedor-graficos {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .grafico {
-            border: 1px solid #ddd;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 8px;
-        }
-
-        .grafico img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="contenedor">
-        <h1>Evolución del Puesto y Puntaje</h1>
-        <p style="font-size: 18px; color: white;">
-            {% if ultimo_puntaje %}
-                Hola {{ nombre_usuario }}, tu puntaje en el último simulacro fue <strong>{{ ultimo_puntaje }}</strong> puntos.
-            {% else %}
-                No se han registrado puntajes aún.
-            {% endif %}
-        </p>
-        <br>
-        <div class="contenedor-graficos">
-            <div class="grafico">
-                <h3 style="color: black;">Evolución del Puesto</h3>
-                <img src="data:image/png;base64,{{ grafico_puesto }}" alt="Gráfico Puesto">
-            </div>
-            
-            <div class="grafico">
-                <h3 style="color: black;">Evolución del Puntaje</h3>
-                <img src="data:image/png;base64,{{ grafico_puntaje }}" alt="Gráfico Puntaje">
-            </div>
+    <div class="contenedor-graficos-reportes">
+        <div class="grafico-reportes">
+            <h3>Evolución del Puesto</h3>
+            <img src="data:image/png;base64,{{ grafico_puesto }}" alt="Gráfico Puesto">
+        </div>
+        
+        <div class="grafico-reportes">
+            <h3>Evolución del Puntaje</h3>
+            <img src="data:image/png;base64,{{ grafico_puntaje }}" alt="Gráfico Puntaje">
         </div>
     </div>
+</div>
+{% endblock %}
 
-</body>
-</html>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/reportes.css' %}">
 {% endblock %}

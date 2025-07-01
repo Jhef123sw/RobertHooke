@@ -11,16 +11,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-from dotenv import load_dotenv
 import os
-load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-SESSION_COOKIE_NAME = "sessionid_reportes"
-CSRF_COOKIE_NAME = "csrftoken_reportes"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -85,18 +81,19 @@ WSGI_APPLICATION = 'appPrincipal.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DATABASE_NAME'),
-        'USER': os.getenv('DATABASE_USER'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
-        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
-        'PORT': os.getenv('DATABASE_PORT', '3306'),
+        'ENGINE': 'django.db.backends.mysql',  # Motor de base de datos
+        'NAME': 'robert2',           # Nombre de la base de datos
+        'USER': 'root',                 # Usuario de MariaDB
+        'PASSWORD': 'qwertynop123',          # Contraseña del usuario
+        'HOST': 'localhost',                  # Dirección del servidor (o IP)
+        'PORT': '3306',                       # Puerto del servidor (default: 3306)
     }
 }
 
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -111,6 +108,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -139,18 +138,13 @@ AUTHENTICATION_BACKENDS = [
 #]
 
 
+STATIC_URL = '/static/'
 
-
-
-FORCE_SCRIPT_NAME = ''
-STATIC_URL = '/reportes/static/'
-MEDIA_URL = '/reportes/media/'
-LOGIN_URL = '/reportes/accounts/login/'
-LOGIN_REDIRECT_URL = '/reportes/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
-
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'login/static'),
+]
 
 
 
@@ -162,15 +156,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 #Variables de entorno
+LOGIN_REDIRECT_URL = 'login'
 LOGOUT_REDIRECT_URL = 'login'
 
-MEDIA_URL = '/reportes/media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Configuración para archivos externos (opcional si quieres acceder a D:\estudiantes_robert25)
 EXTERNAL_FILES_ROOT = 'D:/estudiantes_robert2025'
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_SEND_EVENTS = True
+

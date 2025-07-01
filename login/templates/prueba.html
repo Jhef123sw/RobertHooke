@@ -1,1 +1,56 @@
-<h1>hola</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'login/login.css' %}">
+</head>
+<body>
+    {% if messages %}
+        <div>
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="container">
+        <div class="login-section">
+            <form method="post" class="login-form">
+                {% csrf_token %}
+
+                <label for="id_usuario">Usuario</label>
+                {{ form.usuario }}
+
+                <label for="id_contraseña">Contraseña</label>
+                <div style="position: relative;">
+                    {{ form.contraseña }}
+                    <button type="button" onclick="togglePassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer;">👁️</button>
+                </div>
+
+                <button type="submit">Iniciar Sesión</button>
+            </form>
+        </div>
+        <div class="info-section">
+            <p class="info-text">
+                El acceso al intranet se logra a través de credenciales proporcionadas por la administración, compuestas por un usuario o username que es el código del estudiante en la academia y una contraseña que es el DNI del estudiante...
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function togglePassword() {
+            const passField = document.getElementById("id_contraseña");
+            if (passField.type === "password") {
+                passField.type = "text";
+            } else {
+                passField.type = "password";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 {% extends base_template %}
 
-
 {% block content %}
 <!DOCTYPE html>
 <html lang="es">
@@ -9,86 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes de Simulacros</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/crear_estudiante.css' %}">
-    <style>
-        .btn_descargar{
-            background-color: #ffffff;
-            border-color: black;
-            color: #188D5C;
-            position: fixed;
-            border-radius: 20px;
-            padding: 10px 20px;
-            margin-bottom: 33%;
-            margin-left: 60%;
-            text-decoration: none;
-        }
-        /*
-        .contenedor-graficos {
-            width: 80%;
-            max-width: 1000px;
-            height: 500px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: auto;
-            background-color: #f9f9f9;
-        }
-        */
-
-        /*
-        
-        */
-        .contenedor-graficos {
-            max-height: 350px;
-            overflow-y: auto;
-            border: 1px solid #ccc;
-            padding: 10px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr); 
-            gap: 20px;
-        }
-        .contenedor-filtros {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .contenedor-filtros label {
-            font-weight: bold;
-        }
-
-        .contenedor-filtros select {
-            padding: 5px;
-            font-size: 14px;
-        }
-
-        
-
-        .grafico {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        img {
-            width: 100%;  /* Ajustar imágenes al ancho del contenedor */
-            max-width: 800px;
-            height: auto;
-            display: block;
-            margin: auto;
-            border-radius: 8px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 1.5rem;  /* Tamaño grande para el título */
-            color: white;  /* Color blanco para el título */
-        }
-        h3 { 
-            color: white;  /* Color blanco para el título */
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/reportes.css' %}">
 </head>
 <body>
     {% if messages %}
@@ -98,12 +18,15 @@
         {% endfor %}
     </ul>
     {% endif %}
+
     <div class="main-content">
         <a href="{% url 'descargar_reporte' usuario_actual.pk %}" class="btn_descargar">Descargar mi reporte</a>
+
         {% load custom_filters %}
         {% with usuario_actual.nombre|split:" " as nombres %}
             <h2>Reporte de {{ nombres.0 }}</h2>
         {% endwith %}
+
         <div class="contenedor-filtros">
             <label for="filtro-curso">Selecciona un curso:</label>
             <select id="filtro-curso">
@@ -112,8 +35,7 @@
                     <option value="{{ curso }}">{{ curso }}</option>
                 {% endfor %}
             </select>
-        
-            <!-- Filtro por Fecha -->
+
             <label for="filtro-fecha">Selecciona una fecha:</label>
             <select id="filtro-fecha">
                 <option value="todas">Todas</option>
@@ -122,7 +44,7 @@
                 {% endfor %}
             </select>
         </div>
-    	<!-- Contenedor con scroll para los gráficos -->
+
         <div class="contenedor-graficos">
             {% for grafico in graficos %}
                 <div class="grafico" data-curso="{{ grafico.curso }}" data-fecha="{{ grafico.fecha }}">
@@ -133,33 +55,28 @@
                 <p>No hay gráficos disponibles.</p>
             {% endfor %}
         </div>
-    
+
         <script>
             function filtrarGraficos() {
-                let cursoSeleccionado = document.getElementById("filtro-curso").value;
-                let fechaSeleccionada = document.getElementById("filtro-fecha").value;
-                let graficos = document.querySelectorAll(".grafico");
-    
+                const cursoSeleccionado = document.getElementById("filtro-curso").value;
+                const fechaSeleccionada = document.getElementById("filtro-fecha").value;
+                const graficos = document.querySelectorAll(".grafico");
+
                 graficos.forEach(grafico => {
-                    let curso = grafico.dataset.curso;
-                    let fecha = grafico.dataset.fecha;
-    
-                    let mostrarPorCurso = (cursoSeleccionado === "todos" || curso === cursoSeleccionado);
-                    let mostrarPorFecha = (fechaSeleccionada === "todas" || fecha === fechaSeleccionada);
-    
-                    if (mostrarPorCurso && mostrarPorFecha) {
-                        grafico.style.display = "block";
-                    } else {
-                        grafico.style.display = "none";
-                    }
+                    const curso = grafico.dataset.curso;
+                    const fecha = grafico.dataset.fecha;
+
+                    const mostrarPorCurso = (cursoSeleccionado === "todos" || curso === cursoSeleccionado);
+                    const mostrarPorFecha = (fechaSeleccionada === "todas" || fecha === fechaSeleccionada);
+
+                    grafico.style.display = (mostrarPorCurso && mostrarPorFecha) ? "block" : "none";
                 });
             }
-    
+
             document.getElementById("filtro-curso").addEventListener("change", filtrarGraficos);
             document.getElementById("filtro-fecha").addEventListener("change", filtrarGraficos);
         </script>
     </div>
-    
 </body>
 </html>
 {% endblock %}

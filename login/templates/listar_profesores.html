@@ -1,67 +1,63 @@
 {% extends base_template %}
-<!-- subir_reporte.html -->
-
-{% block content %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Lista de Tutores</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Listado de Profesores</h2>
-        <a href="{% url 'crear_profesor' %}" class="btn btn-primary">+ Crear Profesor</a>
-        <a href="{% url 'asignar_cursos' %}" class="btn btn-primary">Administrarlos</a>
+{% block content %}
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<div class="container mt-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 text-center text-md-start">
+        <h2 class="mb-3 mb-md-0">Listado de Profesores</h2>
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <a href="{% url 'crear_profesor' %}" class="btn btn-primary">+ Crear Profesor</a>
+            <a href="{% url 'asignar_cursos' %}" class="btn btn-secondary">Administrarlos</a>
+        </div>
     </div>
 
-    <table class="table table-bordered table-hover">
-        <thead class="table-light">
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Usuario</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tutor in tutores %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-light">
                 <tr>
-                    <td>{{ tutor.ID_Estudiante }}</td>
-                    <td>{{ tutor.nombre }}</td>
-                    <td>{{ tutor.usuario }}</td>
-                    <td>
-                        <a href="{% url 'editar_estudiante' tutor.pk %}" class="btn btn-sm btn-primary">Editar</a>
-                        <a href="#" class="btn btn-sm btn-danger btn-eliminar" data-id="{{ tutor.ID_Estudiante }}">Eliminar</a>
-                    </td>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Usuario</th>
+                    <th>Acciones</th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center">No hay profesores registrados.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for tutor in tutores %}
+                    <tr>
+                        <td>{{ tutor.ID_Estudiante }}</td>
+                        <td>{{ tutor.nombre }}</td>
+                        <td>{{ tutor.usuario }}</td>
+                        <td>
+                            <a href="{% url 'editar_estudiante' tutor.pk %}" class="btn btn-sm btn-primary mb-1">Editar</a>
+                            <a href="#" class="btn btn-sm btn-danger btn-eliminar mb-1" data-id="{{ tutor.ID_Estudiante }}">Eliminar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No hay profesores registrados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-</body>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const tablaBody = document.querySelector('tbody');
-
         tablaBody.addEventListener('click', function(event) {
             const target = event.target;
             if (target.classList.contains('btn-eliminar')) {
-                event.preventDefault(); // Evita que el enlace redirija inmediatamente
-                const estudianteId = target.getAttribute('data-id');
+                event.preventDefault();
+                const profesorId = target.getAttribute('data-id');
                 if (confirm("¿Estás seguro de que deseas eliminar este profesor?")) {
-                    window.location.href = `/reportes/estudiantes/eliminar/${estudianteId}/`;
+                    window.location.href = `/reportes/estudiantes/eliminar/${profesorId}/`;
                 }
             }
         });
     });
 </script>
-</html>
+
 {% endblock %}
