@@ -5,133 +5,225 @@
 <div class="container">
   <div class="scroll-box" id="profesores">
     <h3>Profesores</h3>
-    <ul style="color: black;">{% for prof in profesores %}<li class="profesor" data-id="{{ prof.ID_Estudiante }}">{{ prof.nombre }}</li>{% endfor %}</ul>
+    <ul style="color: black;">
+      {% for prof in profesores %}
+        <li class="profesor" data-id="{{ prof.ID_Estudiante }}">{{ prof.nombre }}</li>
+      {% endfor %}
+    </ul>
   </div>
 
   <div class="scroll-box" id="cursos">
     <h3>Cursos <input type="checkbox" id="checkAllCursos"/></h3>
     <input type="text" id="busqueda-cursos" placeholder="Buscar curso..." />
-    <ul>{% for c in cursos %}
-      <li class="curso" data-id="{{ c.id }}" {% if c.estudiante %}style="opacity:0.6"{% else %}draggable="true"{% endif %} style="color: black;">
-        <input type="checkbox" class="select-curso" {% if c.estudiante %}disabled{% endif %}/> {{ c.get_nombreCurso_display }}
-        {% if c.estudiante %}<span>(Asignado {{ c.estudiante.usuario }})</span>{% endif %}
-      </li>
-    {% endfor %}</ul>
+    <ul>
+      {% for c in cursos %}
+        <li class="curso" data-id="{{ c.id }}"
+            {% if c.estudiante %}style="opacity:0.6; color: black;"{% else %}draggable="true" style="color: black;"{% endif %}>
+          <input type="checkbox" class="select-curso" {% if c.estudiante %}disabled{% endif %}/>
+          {{ c.get_nombreCurso_display }}
+          {% if c.estudiante %}<span>(Asignado {{ c.estudiante.usuario }})</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
   </div>
 
   <div class="scroll-box" id="cursos-profesor">
     <h3>Cursos de <span id="nombre-profesor">selecciona profesor</span>
       <input type="checkbox" id="checkAllAsignados"/></h3>
-    <ul id="lista-cursos-profesor"></ul>
+    <ul id="lista-cursos-profesor" style="color: black;"></ul>
   </div>
 </div>
 
 <script>
-// similar a estudiantes, adaptado...
-function mostrarMarcadorSiVacio() {
-            const lista = document.getElementById('lista-cursos-profesor');
-            if (lista.children.length === 0) {
-                const placeholder = document.createElement('li');
-                placeholder.textContent = 'Arrastra curso(s) aquí';
-                placeholder.style.fontStyle = 'italic';
-                placeholder.style.color = '#888';
-                placeholder.style.pointerEvents = 'none';
-                placeholder.className = 'placeholder';
-                lista.appendChild(placeholder);
-            } else {
-                const placeholder = lista.querySelector('.placeholder');
-                if (placeholder) placeholder.remove();
-            }
+
+  function cargarCursosGenerales() {
+  fetch('/obtener-cursos/')
+    .then(response => response.json())
+    .then(data => {
+      const cont = document.getElementById('lista-cursos-general');
+      cont.innerHTML = '';
+      data.forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'curso';
+        li.dataset.id = c.id;
+        if (c.profesor) {
+          li.style.opacity = '0.6';
+          li.style.color = 'black';
+        } else {
+          li.draggable = true;
+          li.style.color = 'black';
         }
-let profesorId=null;
-document.querySelectorAll('.profesor').forEach(li=>{
-  li.addEventListener('click', ()=>{
-    profesorId=li.dataset.id;
-    document.getElementById('nombre-profesor').innerText = li.innerText;
-    fetch(`/reportes/obtener-cursos-profesor/${profesorId}/`)
-      .then(r=>r.json()).then(data=>{
-        const cont= document.getElementById('lista-cursos-profesor');
-        cont.innerHTML='';
-        data.forEach(c=>{
-          const li2=document.createElement('li');
-          li2.dataset.id=c.id; li2.draggable=true; li2.className='curso';
-          li2.innerHTML=`<input type="checkbox" class="select-asignado"/> ${c.nombreCurso}`;
-          cont.appendChild(li2);
-        });
-        setCheckboxHandlers(); setDragHandlers();
+        li.innerHTML = `
+          <input type="checkbox" class="select-curso" ${c.profesor ? 'disabled' : ''}/>
+          ${c.nombreCurso}
+          ${c.profesor ? `<span>(Asignado ${c.profesor})</span>` : ''}
+        `;
+        cont.appendChild(li);
       });
+      setDragHandlers();
+      document.getElementById('busqueda-cursos').dispatchEvent(new Event('input'));
+    });
+}
+
+let profesorId = null;
+
+function mostrarMarcadorSiVacio() {
+  const lista = document.getElementById('lista-cursos-profesor');
+  if (lista.children.length === 0) {
+    const placeholder = document.createElement('li');
+    placeholder.textContent = 'Arrastra curso(s) aquí';
+    placeholder.className = 'placeholder';
+    placeholder.style.fontStyle = 'italic';
+    placeholder.style.color = '#888';
+    placeholder.style.pointerEvents = 'none';
+    lista.appendChild(placeholder);
+  } else {
+    const placeholder = lista.querySelector('.placeholder');
+    if (placeholder) placeholder.remove();
+  }
+}
+
+function cargarCursosProfesor() {
+  fetch(`/obtener-cursos-profesor/${profesorId}/`)
+    .then(r => r.json())
+    .then(data => {
+      const cont = document.getElementById('lista-cursos-profesor');
+      cont.innerHTML = '';
+      data.forEach(c => {
+        const li = document.createElement('li');
+        li.dataset.id = c.id;
+        li.className = 'curso';
+        li.draggable = true;
+        li.innerHTML = `<input type="checkbox" class="select-asignado"/> ${c.nombreCurso}`;
+        cont.appendChild(li);
+      });
+      setDragHandlers();
+      mostrarMarcadorSiVacio();
+    });
+}
+
+document.querySelectorAll('.profesor').forEach(li => {
+  li.addEventListener('click', () => {
+    profesorId = li.dataset.id;
+    document.getElementById('nombre-profesor').innerText = li.innerText;
+    cargarCursosProfesor();
   });
 });
 
-document.getElementById('checkAllCursos').addEventListener('change', ()=>{
-  document.querySelectorAll('.select-curso').forEach(cb=>{
-    const li=cb.parentElement;
-    if(li.offsetParent!==null && !cb.disabled) cb.checked = document.getElementById('checkAllCursos').checked;
+document.getElementById('checkAllCursos').addEventListener('change', () => {
+  document.querySelectorAll('.select-curso').forEach(cb => {
+    if (cb.offsetParent !== null && !cb.disabled) {
+      cb.checked = document.getElementById('checkAllCursos').checked;
+    }
   });
 });
-document.getElementById('checkAllAsignados').addEventListener('change', ()=>{
-  document.querySelectorAll('.select-asignado').forEach(cb=>cb.checked=document.getElementById('checkAllAsignados').checked);
+
+document.getElementById('checkAllAsignados').addEventListener('change', () => {
+  document.querySelectorAll('.select-asignado').forEach(cb => {
+    cb.checked = document.getElementById('checkAllAsignados').checked;
+  });
 });
 
-function setCheckboxHandlers(){ /* igual */ }
-function setDragHandlers(){
-  document.querySelectorAll('li.curso').forEach(li=>{
-    li.addEventListener('dragstart', e=>{
+function setDragHandlers() {
+  document.querySelectorAll('li.curso').forEach(li => {
+    li.addEventListener('dragstart', e => {
       let selected = Array.from(document.querySelectorAll('.select-curso:checked, .select-asignado:checked'));
-      if(!selected.find(cb=>cb.parentElement===li)) selected=[li.querySelector('input')];
-      let ids = selected.map(cb=>cb.parentElement.dataset.id);
+      if (!selected.find(cb => cb.parentElement === li)) {
+        selected = [li.querySelector('input')];
+      }
+      let ids = selected.map(cb => cb.parentElement.dataset.id);
       e.dataTransfer.setData('ids', JSON.stringify(ids));
     });
   });
 }
 
-const listaGeneral=document.querySelector('#cursos ul');
-const listaProf=document.getElementById('lista-cursos-profesor');
+const listaGeneral = document.querySelector('#cursos ul');
+const listaProf = document.getElementById('lista-cursos-profesor');
 
-listaProf.addEventListener('dragover', e=>e.preventDefault());
-listaProf.addEventListener('drop', e=>{
+listaProf.addEventListener('dragover', e => e.preventDefault());
+listaProf.addEventListener('drop', e => {
   e.preventDefault();
-  if(!profesorId){alert("Selecciona profesor"); return;}
-  const ids=JSON.parse(e.dataTransfer.getData('ids'));
-  Promise.all(ids.map(id=>
-    fetch('/reportes/asignar-curso/', {
-      method:'POST',
-      headers:{'X-CSRFToken':'{{ csrf_token }}'},
-      body:new URLSearchParams({curso_id:id, profesor_id:profesorId})
+  if (!profesorId) {
+    alert("Selecciona profesor");
+    return;
+  }
+  const ids = JSON.parse(e.dataTransfer.getData('ids'));
+  Promise.all(ids.map(id =>
+    fetch('/asignar-curso/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: new URLSearchParams({ curso_id: id, profesor_id: profesorId })
     })
-  )).then(()=>{
-    // recargar ambos
-    document.querySelector('#busqueda-cursos').dispatchEvent(new Event('input'));
-    fetch(`/reportes/obtener-cursos-profesor/${profesorId}/`).then(r=>r.json()).then(/* recarga lista prof */);
-  });
-});
-
-listaGeneral.addEventListener('dragover', e=>e.preventDefault());
-listaGeneral.addEventListener('drop', e=>{
-  e.preventDefault();
-  const ids=JSON.parse(e.dataTransfer.getData('ids'));
-  Promise.all(ids.map(id=>
-    fetch('/reportes/desasignar-curso/', {
-      method:'POST',
-      headers:{'X-CSRFToken':'{{ csrf_token }}'},
-      body:new URLSearchParams({curso_id:id})
-    })
-  )).then(()=>{
+  )).then(() => {
     document.getElementById('busqueda-cursos').dispatchEvent(new Event('input'));
-    fetch(`/reportes/obtener-cursos-profesor/${profesorId}/`);
+    cargarCursosProfesor();
+    cargarCursosGenerales();
   });
 });
 
-document.getElementById('busqueda-cursos').addEventListener('input', function(){
-  const t=this.value.toLowerCase();
-  document.querySelectorAll('#cursos ul li').forEach(li=>{
-    li.style.display = li.textContent.toLowerCase().includes(t) ? 'flex':'none';
+listaGeneral.addEventListener('dragover', e => e.preventDefault());
+listaGeneral.addEventListener('drop', e => {
+  e.preventDefault();
+  const ids = JSON.parse(e.dataTransfer.getData('ids'));
+  Promise.all(ids.map(id =>
+    fetch('/desasignar-curso/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: new URLSearchParams({ curso_id: id })
+    })
+  )).then(() => {
+    document.getElementById('busqueda-cursos').dispatchEvent(new Event('input'));
+    if (profesorId) cargarCursosProfesor();
+  });
+});
+
+document.getElementById('busqueda-cursos').addEventListener('input', function () {
+  const texto = this.value.toLowerCase();
+  document.querySelectorAll('#cursos ul li').forEach(li => {
+    li.style.display = li.textContent.toLowerCase().includes(texto) ? 'flex' : 'none';
   });
 });
 </script>
 
 <style>
-/* similar CSS: .container tabla flex y .scroll-box con scroll, altura fija */
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+.scroll-box {
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 30%;
+  height: 500px;
+  overflow-y: auto;
+  background: #f9f9f9;
+}
+.scroll-box h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.scroll-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.scroll-box li {
+  padding: 5px;
+  margin-bottom: 4px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: grab;
+}
+.scroll-box li.placeholder {
+  background: none;
+  border: none;
+  font-style: italic;
+  color: #888;
+}
 </style>
-
 {% endblock %}

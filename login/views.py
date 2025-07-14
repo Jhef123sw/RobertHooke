@@ -120,10 +120,10 @@ def obtener_todos_los_cursos(request):
 def asignar_curso(request):
     curso_id = request.POST.get('curso_id')
     profesor_id = request.POST.get('profesor_id')
-    curso = get_object_or_404(curso, pk=curso_id)
+    cursito = get_object_or_404(curso, pk=curso_id)
     profesor = get_object_or_404(Estudiante, pk=profesor_id, tipo_estudiante='profesor')
-    curso.estudiante = profesor
-    curso.save()
+    cursito.estudiante = profesor
+    cursito.save()
     return JsonResponse({'ok': True})
 
 @login_required
@@ -131,12 +131,10 @@ def asignar_curso(request):
 @require_POST
 def desasignar_curso(request):
     curso_id = request.POST.get('curso_id')
-    curso = get_object_or_404(curso, pk=curso_id)
-    curso.estudiante = None
-    curso.save()
+    cursito = get_object_or_404(curso, pk=curso_id)
+    cursito.estudiante = None
+    cursito.save()
     return JsonResponse({'ok': True})
-
-
 
 
 
@@ -1367,6 +1365,8 @@ def reportes_puesto_puntaje(request):
         base_template = "layouts/base.html"  # Plantilla para administrador
     elif usuario_actual.tipo_estudiante == "estudiante":
         base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    elif usuario_actual.tipo_estudiante == "profesor":
+        base_template = "layouts/base_profesor.html"
     else:
         base_template = "layouts/base_tutor.html"
 
@@ -2578,6 +2578,8 @@ def home(request):
         base_template = "layouts/base.html"  # Plantilla para administrador
     elif estudiante.tipo_estudiante == "estudiante":
         base_template = "layouts/base2.html"  # Plantilla para estudiante regular
+    elif estudiante.tipo_estudiante == "profesor":
+        base_template = "layouts/base_profesor.html"
     else:
         base_template = "layouts/base_tutor.html"
 
