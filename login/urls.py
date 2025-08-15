@@ -1,7 +1,45 @@
 from django.urls import path
-from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea, vista_grafico_respuestas, obtener_reportes_resumen, vista_grafico_estudiante, generar_reportes_odf_asistencia, vista_grafico_respuestas_tutor, listar_profesores, crear_profesor, asignar_curso, asignar_cursos_profesor, obtener_cursos_profesor, obtener_todos_los_cursos, desasignar_curso
+from .views import registrar_estudiante, cargar_excel, login_view, subir_reporte, salir, reportes_estudiante, reportes_puesto_puntaje, reportes_observaciones, generar_imagenes_reportes,generar_reporte, lista_estudiantes, editar_estudiante, eliminar_estudiante, agregar_observacion, eliminar_estudiantes_masivo, generar_imagenes_reportes_por_fecha, seleccionar_fecha_generacion, generar_graficos_todos_estudiantes, cargar_asistencias, generar_reporte_asistencia, prueba, generar_todo_reporte, descargar_reporte, descargar_reportes_zip, generar_reporte_asistencia_todos, descargar_reportes_asistencia_zip, actualizar_datos, descargar_estudiantes_excel, ver_asistencias, ver_todas_asistencias, eliminar_asistencia, editar_asistencia, acciones_asistencias, registrar_asistencia, editar_variable_control, asignar_tutores, obtener_estudiantes_tutor, asignar_estudiante, desasignar_estudiante, listar_tutores, crear_tutor, obtener_todos_los_estudiantes, estudiantes_asignados_tutor, reportes_estudiante_tutor, ver_asistencias_tutor, generar_todos_los_reportes, iniciar_tarea_reportes, obtener_estado_tarea, vista_grafico_respuestas, obtener_reportes_resumen, vista_grafico_estudiante, generar_reportes_odf_asistencia, vista_grafico_respuestas_tutor, listar_profesores, crear_profesor, asignar_curso, asignar_cursos_profesor, obtener_cursos_profesor, obtener_todos_los_cursos, desasignar_curso, cursos_por_profesor, obtener_grafico_por_intervalos, vista_grafico_intervalos, fechas_unicas_por_nivel_y_curso, obtener_distribucion_por_fecha, vista_grafico_por_tipo, obtener_grafico_por_tipo, seleccionar_curso, seleccionar_fecha, seleccionar_nivel, subir_imagen_pregunta, evaluacion_simulacros, simulacros, dashboard_reportes, obtener_fechas_nivel, obtener_resultados_fecha, dashboard_reportes1, obtener_resultados_fecha1, dashboard_reportes2
 
 urlpatterns = [
+
+    #Tablas
+    path('tabla_resultados2/', dashboard_reportes2, name= 'tabla_resultados1'),
+    path('tabla_resultados1/', dashboard_reportes1, name= 'tabla_resultados1'),
+    path('tabla_resultados/', dashboard_reportes, name= 'tabla_resultados'),
+    path('obtener_fechas_nivel/<str:nivel>/', obtener_fechas_nivel, name= 'fechas_nivel'),
+    path('obtener_resultados_fecha/<str:nivel>/<str:fecha>/', obtener_resultados_fecha, name= 'resultados_fechas_nivel'),
+    path('obtener_resultados_fecha1/<str:nivel>/<str:fecha>/', obtener_resultados_fecha1, name= 'resultados_fechas_nivel'),
+    
+
+
+
+    #Simulacros
+    path('simulacros/', simulacros, name='simulacros'),
+
+
+
+
+    #preguntas
+    path('subir-preguntas/', seleccionar_nivel, name='seleccionar_nivel'),
+    path('subir-preguntas/<str:nivel>/', seleccionar_fecha, name='seleccionar_fecha'),
+    path('subir-preguntas/<str:nivel>/<str:fecha>/', seleccionar_curso, name='seleccionar_curso'),
+    path('subir-preguntas/<str:nivel>/<str:fecha>/<str:curso>/', subir_imagen_pregunta, name='subir_imagen_pregunta'),
+
+
+
+
+    #Cursos
+    path("grafico-por-tipo/", vista_grafico_por_tipo, name="grafico_por_tipo"),
+    path("api/grafico-por-tipo/", obtener_grafico_por_tipo, name="api_grafico_por_tipo"),
+    path("api/fechas-unicas/", fechas_unicas_por_nivel_y_curso, name="fechas_unicas_por_nivel_y_curso"),
+    path('cursos-profesor/', cursos_por_profesor, name='cursos_por_profesor'),
+    path('grafico-por-intervalos/', vista_grafico_intervalos, name='grafico_por_intervalos'),
+    path('api/grafico-intervalos/', obtener_grafico_por_intervalos, name='api_grafico_intervalos'),
+    path("api/distribucion-por-fecha/", obtener_distribucion_por_fecha, name="api_distribucion_por_fecha"),
+    path("evaluacion_simulacros/", evaluacion_simulacros, name="evaluacion_simulacros"),
+
+
     #Profesores
     path('profesores/', listar_profesores, name='listar_profesores'),
     path('crear-profesor/', crear_profesor, name='crear_profesor'),

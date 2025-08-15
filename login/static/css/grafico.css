@@ -2,7 +2,7 @@ body {
     font-family: 'Segoe UI', sans-serif;
     background: #f4f4f4;
     margin: 0;
-    padding: 0px;
+    padding: 0;
 }
 
 .container {
@@ -30,4 +30,31 @@ input, select {
 
 canvas {
     margin-top: 30px;
+}
+
+#contenedor-imagen-pregunta img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+
+/* Contenedor para centrar y limitar tamaño de imagen */
+#contenedor-imagen-pregunta {
+    width: 100%;
+    max-width: 600px;
+    padding: 0 10px;
+    margin: 0 auto;
+}
+
+/* Imagen responsiva que se adapta manteniendo proporción */
+.imagen-pregunta {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+    max-width: 100%;
+    max-height: 500px; /* O el límite que desees */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }

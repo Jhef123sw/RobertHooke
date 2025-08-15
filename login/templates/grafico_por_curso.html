@@ -1,0 +1,69 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+
+<title style="color: black;">Distribución por Intervalos</title>
+<link rel="stylesheet" href="{% static 'css/grafico.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container mt-4">
+
+  <div class="row mb-3">
+    <div class="col-md-3 mb-2">
+      <select id="nivel" class="form-select">
+        <option value="">Selecciona un nivel</option>
+        <option value="Pre">Preuniversitario</option>
+        <option value="Semillero">Semillero</option>
+      </select>
+    </div>
+    <div class="col-md-3 mb-2">
+      <select id="curso" class="form-select" disabled>
+        <option value="">Selecciona un curso</option>
+        <option value="Rv">Razonamiento Verbal</option>
+        <option value="Rm">Razonamiento Matemático</option>
+        <option value="Ar">Aritmética</option>
+        <option value="Al">Álgebra</option>
+        <option value="Ge">Geometría</option>
+        <option value="Tr">Trigonometría</option>
+        <option value="Fi">Física</option>
+        <option value="Qu">Química</option>
+        <option value="Bi">Biología</option>
+        <option value="Le">Lenguaje</option>
+        <option value="Lit">Literatura</option>
+        <option value="Hi">Historia</option>
+        <option value="Gf">Geografía</option>
+        <option value="Fil">Filosofía</option>
+        <option value="Psi">Psicología</option>
+        <option value="Ec">Economía</option>
+      </select>
+    </div>
+    <div class="col-md-3 mb-2">
+      <select id="fecha" class="form-select" disabled>
+        <option value="">Selecciona una fecha</option>
+        <!-- Fechas se llenarán dinámicamente -->
+      </select>
+    </div>
+  </div>
+
+  <div class="checkboxes mb-3 d-flex flex-wrap">
+    <label class="me-3 text-dark" style="color: black;"><input type="checkbox" id="chk_correctas" checked> Correctas</label>
+    <label class="me-3 text-dark" style="color: black;"><input type="checkbox" id="chk_incorrectas" checked> Incorrectas</label>
+    <label class="me-3 text-dark" style="color: black;"><input type="checkbox" id="chk_blancas" checked> En blanco</label>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+      <div class="card p-3">
+        <canvas id="grafico" style="width: 100%; height: 400px;"></canvas>
+        <div class="text-center">
+          <div id="contenedor-imagen-pregunta" class="mx-auto" style="max-width: 600px; width: 100%;">
+            <!-- Imagen insertada dinámicamente aquí -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/grafico_intervalos.js' %}"></script>
+{% endblock %}

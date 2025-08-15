@@ -57,16 +57,17 @@ function verificarEstado(taskId) {
     fetch(urlEstado)
         .then(response => response.json())
         .then(data => {
+            console.log('estado task:', data);
             const barra = document.getElementById("barra-progreso");
             const mensaje = document.getElementById("mensaje-progreso");
-
+            const info = data.info || {};
             if (data.state === 'PENDING') {
                 barra.style.width = '10%';
                 barra.textContent = 'Esperando...';
                 mensaje.textContent = 'Tarea en cola...';
             } else if (data.state === 'PROGRESO') {
-                const progreso = data.info.progress || 0;
-                const step = data.info.step || 'Trabajando...';
+                const progreso = info.progress || 0;
+                const step = info.step || 'Trabajando...';
                 barra.style.width = progreso + '%';
                 barra.textContent = progreso + '%';
                 mensaje.textContent = step;
@@ -74,16 +75,15 @@ function verificarEstado(taskId) {
                 barra.style.width = '100%';
                 barra.textContent = '100%';
                 mensaje.textContent = '¡Tarea completada con éxito!';
-                localStorage.removeItem("task_reporte_id");  // ⬅️ Borrar cuando termine
+                localStorage.removeItem("task_reporte_id");
                 return;
             } else if (data.state === 'FAILURE') {
                 barra.style.background = 'red';
                 barra.textContent = 'Error';
-                mensaje.textContent = data.info.exc || 'Error inesperado';
-                localStorage.removeItem("task_reporte_id");  // ⬅️ Borrar si falla
+                mensaje.textContent = info.exc || 'Error inesperado';
+                localStorage.removeItem("task_reporte_id");
                 return;
             }
-
             setTimeout(() => verificarEstado(taskId), 2000);
         });
 }

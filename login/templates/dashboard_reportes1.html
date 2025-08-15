@@ -1,0 +1,86 @@
+{% extends base_template %}
+{% load static %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard de Reportes</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard_reportes.css' %}">
+</head>
+<body>
+<div class="container">
+    <h1>Reportes de Simulacros</h1>
+
+    <div class="nivel-buttons">
+        <button class="nivel-btn" data-nivel="90">Pre</button>
+        <button class="nivel-btn" data-nivel="30">Semillero</button>
+    </div>
+
+    <div id="fechas-container" class="fechas-bar"></div>
+
+    <div id="resultados-container" class="resultados-grid">
+        <p>Seleccione un nivel y una fecha para ver los resultados.</p>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    const fechasContainer = document.getElementById("fechas-container");
+    const resultadosContainer = document.getElementById("resultados-container");
+    let nivelSeleccionado = null;
+
+    document.querySelectorAll(".nivel-btn").forEach(btn => {
+        btn.addEventListener("click", function(){
+            nivelSeleccionado = this.dataset.nivel;
+            fetch(`/obtener_fechas_nivel/${nivelSeleccionado}/`)
+                .then(res => res.json())
+                .then(data => {
+                    fechasContainer.innerHTML = "";
+                    data.fechas.forEach(fecha => {
+                        let fechaBtn = document.createElement("button");
+                        fechaBtn.classList.add("fecha-btn");
+                        fechaBtn.textContent = fecha;
+                        fechaBtn.addEventListener("click", function(){
+                            fetch(`/obtener_resultados_fecha/${nivelSeleccionado}/${fecha}/`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    resultadosContainer.innerHTML = "";
+                                    if(data.resultados.length > 0){
+                                        data.resultados.forEach(r => {
+                                            let htmlMaterias = "";
+                                            for (const materia in r.datos) {
+                                                let [buenas, malas] = r.datos[materia];
+                                                let enBlanco = 10 - (buenas + malas); // ejemplo, si cada materia tiene 10 preg
+                                                htmlMaterias += `
+                                                    <div class="materia">
+                                                        <strong>${materia}</strong><br>
+                                                        Buenas: ${buenas} | Malas: ${malas} | Blancas: ${enBlanco}
+                                                    </div>
+                                                `;
+                                            }
+
+                                            resultadosContainer.innerHTML += `
+                                                <div class="resultado-card">
+                                                    <h3>${r.estudiante}</h3>
+                                                    ${htmlMaterias}
+                                                    <p><strong>Puntaje:</strong> ${r.puntaje}</p>
+                                                    <p><strong>Puesto:</strong> ${r.puesto}</p>
+                                                </div>
+                                            `;
+                                        });
+                                    } else {
+                                        resultadosContainer.innerHTML = "<p>No hay resultados para esta fecha.</p>";
+                                    }
+                                });
+                        });
+                        fechasContainer.appendChild(fechaBtn);
+                    });
+                });
+        });
+    });
+});
+</script>
+</body>
+</html>
+{% endblock %}

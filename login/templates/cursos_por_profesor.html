@@ -1,0 +1,16 @@
+{% extends base_template %}
+{% block content %}
+<div class="container">
+    <h2 class="titulo">Cursos asignados al profesor</h2>
+    <div class="profesores">
+        {% for item in cursos %}
+        <div class="card">
+            <h3>{{ item.cursos }}</h3> 
+            <ul>
+                <li>{{ item.get_nombreCurso_display }}</li>
+            </ul>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

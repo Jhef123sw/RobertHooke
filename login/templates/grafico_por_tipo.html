@@ -1,0 +1,56 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/grafico.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container mt-4">
+  <h4 style="color:black">Gráfico por Tipo de Pregunta</h4>
+
+  <div class="row mb-3">
+    <div class="col-md-4 mb-2">
+      <select id="nivel" class="form-select">
+        <option value="">Selecciona nivel</option>
+        <option value="Pre">Preuniversitario</option>
+        <option value="Semillero">Semillero</option>
+      </select>
+    </div>
+    <div class="col-md-4 mb-2">
+      <select id="curso" class="form-select" disabled>
+        <option value="">Selecciona curso</option>
+        <option value="Rv">Razonamiento Verbal</option>
+        <option value="Rm">Razonamiento Matemático</option>
+        <option value="Ar">Aritmética</option>
+        <option value="Al">Álgebra</option>
+        <option value="Ge">Geometría</option>
+        <option value="Tr">Trigonometría</option>
+        <option value="Fi">Física</option>
+        <option value="Qu">Química</option>
+        <option value="Bi">Biología</option>
+        <option value="Le">Lenguaje</option>
+        <option value="Lit">Literatura</option>
+        <option value="Hi">Historia</option>
+        <option value="Gf">Geografía</option>
+        <option value="Fil">Filosofía</option>
+        <option value="Psi">Psicología</option>
+        <option value="Ec">Economía</option>
+      </select>
+    </div>
+    <div class="col-md-4 mb-2">
+      <select id="tipo" class="form-select" disabled>
+        <option value="">Selecciona tipo de pregunta</option>
+        <option value="correctas">Correctas</option>
+        <option value="incorrectas">Incorrectas</option>
+        <option value="blancas">En blanco</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card p-3">
+    <canvas id="grafico" height="400"></canvas>
+  </div>
+</div>
+
+<script src="{% static 'js/grafico_por_tipo.js' %}"></script>
+{% endblock %}

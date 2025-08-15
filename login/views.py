@@ -27,7 +27,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from .models import Estudiante, Reporte, Asistencia, VariableControl
-from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2, VariableControlForm, ActualizarDatosFormProf
+from .forms import EstudianteForm, CargarExcelForm, LoginForm, EstudianteForm2, CargarExcelFormReporte, ActualizarDatosForm, AsistenciaForm2, VariableControlForm, ActualizarDatosFormProf, ImagenPreguntaForm
 from .backends import EstudianteBackend
 from .decorators import estudiante_tipo_requerido, datos_actualizados_requerido
 from django.core.paginator import Paginator
@@ -39,8 +39,469 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
 from .models import Reporte, Estudiante, curso
 from datetime import datetime
-from .tasks import generar_todo_reporte_task, generar_imagenes_reportes_por_fecha_task, generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
+from .tasks import generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
+
+#Resultados
+def dashboard_reportes2(request):
+    return render(request, "dashboard_reportes2.html", {'base_template': 'layouts/base.html'})
+
+
+def dashboard_reportes1(request):
+    return render(request, "dashboard_reportes1.html", {'base_template': 'layouts/base.html'})
+
+def dashboard_reportes(request):
+    return render(request, "dashboard_reportes.html", {'base_template': 'layouts/base.html'})
+
+def obtener_fechas_nivel(request, nivel):
+    fechas = (
+        Reporte.objects.filter(nivel=nivel)
+        .order_by("-fecha_de_examen")
+        .values_list("fecha_de_examen", flat=True)
+        .distinct()
+    )
+    fechas_str = [f.strftime("%Y-%m-%d") for f in fechas]
+    return JsonResponse({"fechas": fechas_str})
+
+def obtener_resultados_fecha(request, nivel, fecha):
+    reportes = Reporte.objects.filter(nivel=nivel, fecha_de_examen=fecha)
+
+    resultados = []
+    for r in reportes:
+        resultados.append({
+            "estudiante": str(r.KK_usuario.nombre),
+            "datos": r.obtener_datos(),  # diccionario de materia: (buenas, malas)
+            "puntaje": r.obtener_total_puntaje(),
+            "puesto": r.puesto
+        })
+
+    return JsonResponse({"resultados": resultados})
+
+def obtener_resultados_fecha1(request, nivel, fecha):
+    reportes = Reporte.objects.filter(nivel=nivel, fecha_de_examen=fecha).order_by("puesto")
+    if nivel == '90':
+        total_preguntas = 90  # Ajusta según corresponda
+    else:
+        total_preguntas = 45  # Ajusta según corresponda
+    resultados = []
+    for r in reportes:
+        datos = r.obtener_datos()
+        buenas = sum(v[0] for v in datos.values())
+        malas = sum(v[1] for v in datos.values())
+
+        blancas = total_preguntas - (buenas + malas)
+
+        porcentaje_buenas = round((buenas / total_preguntas) * 100, 2)
+        porcentaje_malas = round((malas / total_preguntas) * 100, 2)
+        porcentaje_blancas = round((blancas / total_preguntas) * 100, 2)
+        puntaje = round(r.obtener_total_puntaje(), 2)
+
+        resultados.append({
+            "puesto": r.puesto,
+            "estudiante": str(r.KK_usuario.nombre),
+            "buenas": buenas,
+            "malas": malas,
+            "blancas": blancas,
+            "porcentaje_buenas": porcentaje_buenas,
+            "porcentaje_malas": porcentaje_malas,
+            "porcentaje_blancas": porcentaje_blancas,
+            "puntaje": puntaje
+        })
+
+    return JsonResponse({"resultados": resultados})
+
+
+
+
+
+
+
+
+#Preguntas
+def simulacros(request):
+    return render(request, 'simulacros.html', {'base_template': 'layouts/base.html'})
+
+
+def evaluacion_simulacros(request):
+    return render(request, 'evaluacion_simulacros.html', {'base_template': 'layouts/base.html'})
+
+
+def seleccionar_nivel(request):
+    return render(request, 'seleccionar_nivel.html', {'base_template': 'layouts/base.html'})
+
+
+def seleccionar_fecha(request, nivel):
+    nivel_id = 90 if nivel == 'pre' else 30
+    fechas = Reporte.objects.filter(nivel=nivel_id).order_by('fecha_de_examen').values_list('fecha_de_examen', flat=True).distinct()
+    return render(request, 'seleccionar_fecha.html', {'nivel': nivel, 'fechas': fechas, 'base_template': 'layouts/base.html'})
+
+
+def seleccionar_curso(request, nivel, fecha):
+    cursos_pre = ['Raz_Verbal', 'Raz_Matemático', 'Aritmética', 'Álgebra', 'Geometría', 'Trigonometría', 'Física', 'Química', 'Biología', 'Lenguaje', 'Literatura', 'Historia', 'Geografía', 'Filosofía', 'Psicología', 'Economía']
+    cursos_sem = ['Raz_Matemático','Raz_Verbal', 'Aritmética', 'Álgebra','Literatura']
+    cursos = cursos_pre if nivel == 'pre' else cursos_sem
+
+    carpeta = 'pre' if nivel == 'pre' else 'sem'
+    ruta = os.path.join(settings.MEDIA_ROOT, f'preguntas/{carpeta}')
+    
+    cursos_con_imagen = []
+    for curso in cursos:
+        nombre_archivo = f"{nivel}_{fecha}_{curso}.png"
+        ruta_completa = os.path.join(ruta, nombre_archivo)
+        if os.path.exists(ruta_completa):
+            cursos_con_imagen.append(curso)
+
+    return render(request, 'seleccionar_curso.html', {
+        'nivel': nivel,
+        'fecha': fecha,
+        'cursos': cursos,
+        'cursos_con_imagen': cursos_con_imagen,
+        'base_template': 'layouts/base.html'
+    })
+
+
+def subir_imagen_pregunta(request, nivel, fecha, curso):
+    carpeta = 'pre' if nivel == 'pre' else 'sem'
+    nombre_archivo = f"{nivel}_{fecha}_{curso}.png"
+    ruta_relativa = f"preguntas/{carpeta}/{nombre_archivo}"
+    ruta_absoluta = os.path.join(settings.MEDIA_ROOT, ruta_relativa)
+
+    imagen_url = None
+    if os.path.exists(ruta_absoluta):
+        imagen_url = os.path.join(settings.MEDIA_URL, ruta_relativa)
+
+    if request.method == 'POST':
+        form = ImagenPreguntaForm(request.POST, request.FILES)
+        if form.is_valid():
+            imagen = form.cleaned_data['imagen']
+            os.makedirs(os.path.dirname(ruta_absoluta), exist_ok=True)
+            with open(ruta_absoluta, 'wb+') as destino:
+                for chunk in imagen.chunks():
+                    destino.write(chunk)
+            return redirect('seleccionar_curso', nivel=nivel, fecha=fecha)
+    else:
+        form = ImagenPreguntaForm()
+
+    return render(request, 'subir_imagen.html', {
+        'form': form,
+        'nivel': nivel,
+        'fecha': fecha,
+        'curso': curso,
+        'imagen_url': imagen_url,
+        'base_template': 'layouts/base.html'
+    })
+
+
+################Cursos-Profesores
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def vista_grafico_por_tipo(request):
+    return render(request, 'grafico_por_tipo.html', {'base_template': 'layouts/base.html'})
+
+COLORES = [
+    "red", "blue", "green", "orange", "purple", "brown", "pink",
+    "teal", "gray", "lime", "navy", "maroon", "olive"
+]
+
+@csrf_exempt
+@login_required
+def obtener_grafico_por_tipo(request):
+    nivel = request.GET.get('nivel')
+    curso = request.GET.get('curso')
+    tipo = request.GET.get('tipo')
+
+    if not nivel or not curso or not tipo:
+        return JsonResponse({'error': 'Parámetros insuficientes'}, status=400)
+
+    nivel_id = 90 if nivel == 'Pre' else 30
+    reportes = Reporte.objects.filter(nivel=nivel_id).order_by('fecha_de_examen')
+    if not reportes.exists():
+        return JsonResponse({'error': 'No hay reportes disponibles'}, status=404)
+
+    config = VariableControl.objects.get(ID_Variable=1)
+    total_preg = getattr(config, f"{curso}_Pre" if nivel_id == 90 else f"{curso}_Sem", 0)
+
+    intervalos = INTERVALOS[nivel].get(curso, [])
+    fechas_unicas = sorted(set(r.fecha_de_examen.strftime('%d/%m/%Y') for r in reportes))
+
+    # Inicializar conteo: {intervalo: [0, 0, ...] por cada fecha}
+    conteo_por_intervalo = {f"{ini}–{fin}": [0]*len(fechas_unicas) for (ini, fin) in intervalos}
+
+    fecha_a_indice = {fecha: idx for idx, fecha in enumerate(fechas_unicas)}
+
+    for reporte in reportes:
+        fecha = reporte.fecha_de_examen.strftime('%d/%m/%Y')
+        idx_fecha = fecha_a_indice[fecha]
+
+        buenas = getattr(reporte, f"{curso}_1", 0)
+        malas = getattr(reporte, f"{curso}_2", 0)
+        blancas = max(0, total_preg - buenas - malas)
+
+        valor = {
+            'correctas': buenas,
+            'incorrectas': malas,
+            'blancas': blancas
+        }.get(tipo, 0)
+
+        for (ini, fin) in intervalos:
+            if ini <= valor <= fin:
+                clave = f"{ini}–{fin}"
+                conteo_por_intervalo[clave][idx_fecha] += 1
+                break
+
+    # Preparar datos para Chart.js
+    series = []
+    for i, (clave, valores) in enumerate(conteo_por_intervalo.items()):
+        series.append({
+            'intervalo': clave,
+            'valores': valores,
+            'color': COLORES[i % len(COLORES)]
+        })
+
+    return JsonResponse({
+        'fechas': fechas_unicas,
+        'series': series
+    })
+
+
+
+@login_required
+@estudiante_tipo_requerido(['profesor'])
+def cursos_por_profesor(request):
+    base_template = "layouts/base_profesor.html"
+    profe = request.user
+    profesores = Estudiante.objects.filter(tipo_estudiante='profesor')
+    data = []
+
+    cursos = curso.objects.filter(estudiante = profe)
+
+    for profesor in profesores:
+        cursos_asignados = curso.objects.filter(estudiante=profesor)
+        data.append({
+            'profesor': profesor,
+            'cursos': cursos_asignados,
+        })
+
+    return render(request, 'cursos_por_profesor.html', {'cursos': cursos, 'base_template': base_template})
+
+INTERVALOS = {
+    'Pre': {
+        'Rv': [(0,2), (3,5), (6,8), (9,11), (12,15)],
+        'Rm': [(0,2), (3,5), (6,8), (9,11), (12,15)],
+        'Ar': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Al': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Ge': [(0,), (1,), (2,), (3,), (4,)],
+        'Tr': [(0,), (1,), (2,), (3,), (4,)],
+        'Fi': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Qu': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Bi': [(0,1), (2,3), (4,5), (6,7), (8,9)],
+        'Le': [(0,), (1,), (2,), (3,), (4,), (5,6)],
+        'Lit': [(0,), (1,), (2,), (3,), (4,), (5,6)],
+        'Hi': [(0,), (1,), (2,), (3,)],
+        'Gf': [(0,), (1,), (2,)],
+        'Fil': [(0,), (1,), (2,)],
+        'Psi': [(0,), (1,), (2,)],
+        'Ec': [(0,), (1,), (2,)],
+    },
+    'Semillero': {
+        'Rv': [(0,), (1,2), (3,4), (5,6), (7,8), (9,10)],
+        'Rm': [(0,), (1,2), (3,4), (5,6), (7,8), (9,10)],
+        'Ar': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Al': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        'Lit': [(0,), (1,), (2,), (3,), (4,), (5,)],
+        # Los demás cursos con 0 preguntas no generarán datos
+    }
+}
+
+@csrf_exempt
+@login_required
+def fechas_unicas_por_nivel_y_curso(request):
+    nivel = request.GET.get('nivel')  # 'Pre' o 'Semillero'
+    curso = request.GET.get('curso')  # Ej: 'Rv'
+
+    if not nivel or not curso:
+        return JsonResponse({'error': 'Parámetros insuficientes'}, status=400)
+
+    nivel_id = 90 if nivel == 'Pre' else 30
+    fechas = Reporte.objects.filter(nivel=nivel_id).order_by('fecha_de_examen').values_list('fecha_de_examen', flat=True).distinct()
+    fechas_formateadas = [f.strftime('%d/%m/%Y') for f in fechas]
+
+    return JsonResponse({'fechas': fechas_formateadas})
+
+
+
+@login_required
+def vista_grafico_intervalos(request):
+    base_template = "layouts/base.html"
+    return render(request, 'grafico_por_curso.html', {'base_template': base_template})
+
+def api_grafico_curso(request):
+    nivel = int(request.GET.get('nivel'))
+    curso = request.GET.get('curso')
+
+    estudiante = request.user
+    reportes = Reporte.objects.filter(KK_usuario=estudiante, nivel=nivel).order_by('fecha_de_examen')
+    fechas = [r.fecha_de_examen.strftime('%Y-%m-%d') for r in reportes]
+
+    # Obtener correctas e incorrectas
+    correctas = []
+    incorrectas = []
+    en_blanco = []
+
+    config = VariableControl.objects.get(ID_Variable=1)
+    clave = curso + ('_Pre' if nivel == 90 else '_Sem')
+    total_preguntas = getattr(config, clave, 0)
+
+    for r in reportes:
+        datos = r.obtener_datos()
+        nombre_curso = dict(Reporte._meta.get_field('Rv_1').choices).get(curso, curso)
+        if nombre_curso not in datos:
+            continue
+        c, i = datos[nombre_curso]
+        correctas.append(c)
+        incorrectas.append(i)
+        en_blanco.append(max(total_preguntas - (c + i), 0))
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.plot(fechas, correctas, label='Correctas', marker='o')
+    ax.plot(fechas, incorrectas, label='Incorrectas', marker='o')
+    ax.plot(fechas, en_blanco, label='En blanco', marker='o')
+
+    ax.set_xlabel('Fecha')
+    ax.set_ylabel('Cantidad')
+    ax.set_title(f'Evolución por curso: {curso}')
+    ax.legend()
+    plt.xticks(rotation=90)
+    fig.tight_layout()
+
+    buffer = BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    imagen_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    buffer.close()
+    plt.close(fig)
+
+    return JsonResponse({'grafico_base64': imagen_base64})
+
+
+@csrf_exempt
+@login_required
+def obtener_distribucion_por_fecha(request):
+    nivel = request.GET.get('nivel')  # 'Pre' o 'Semillero'
+    curso = request.GET.get('curso')  # Ej: 'Rv'
+    fecha = request.GET.get('fecha')  # formato esperado: 'dd/mm/yyyy'
+
+    if not nivel or not curso or not fecha:
+        return JsonResponse({'error': 'Parámetros insuficientes'}, status=400)
+
+    try:
+        from datetime import datetime
+        fecha_examen = datetime.strptime(fecha, '%d/%m/%Y').date()
+    except ValueError:
+        return JsonResponse({'error': 'Formato de fecha inválido'}, status=400)
+
+    nivel_id = 90 if nivel == 'Pre' else 30
+    reportes = Reporte.objects.filter(nivel=nivel_id, fecha_de_examen=fecha_examen)
+
+    if not reportes.exists():
+        return JsonResponse({'error': 'No hay reportes disponibles para esa fecha'}, status=404)
+
+    intervalos_raw = INTERVALOS[nivel].get(curso, [])
+    intervalos_etiquetas = [f"{rango[0]}-{rango[-1]}" for rango in intervalos_raw]
+
+    def obtener_indice_intervalo(valor):
+        for i, intervalo in enumerate(intervalos_raw):
+            start = intervalo[0]
+            end = intervalo[-1] if len(intervalo) > 1 else intervalo[0]
+            if start <= valor <= end:
+                return i
+        return None
+
+    config = VariableControl.objects.get(ID_Variable=1)
+    total_preguntas = getattr(config, f"{curso}_Pre" if nivel_id == 90 else f"{curso}_Sem", 0)
+
+    # Contadores por intervalo
+    correctas_contador = [0] * len(intervalos_raw)
+    incorrectas_contador = [0] * len(intervalos_raw)
+    blancas_contador = [0] * len(intervalos_raw)
+
+    for reporte in reportes:
+        correctas = getattr(reporte, f"{curso}_1", 0)
+        incorrectas = getattr(reporte, f"{curso}_2", 0)
+        blancas = max(0, total_preguntas - correctas - incorrectas)
+
+        i_corr = obtener_indice_intervalo(correctas)
+        i_inc = obtener_indice_intervalo(incorrectas)
+        i_bla = obtener_indice_intervalo(blancas)
+
+        if i_corr is not None:
+            correctas_contador[i_corr] += 1
+        if i_inc is not None:
+            incorrectas_contador[i_inc] += 1
+        if i_bla is not None:
+            blancas_contador[i_bla] += 1
+
+    return JsonResponse({
+        'intervalos': intervalos_etiquetas,
+        'correctas': correctas_contador,
+        'incorrectas': incorrectas_contador,
+        'blancas': blancas_contador,
+    })
+
+
+@csrf_exempt
+@login_required
+def obtener_grafico_por_intervalos(request):
+    nivel = request.GET.get('nivel')  # 'Pre' o 'Semillero'
+    curso = request.GET.get('curso')  # Ej: 'Rv'
+
+    if not nivel or not curso:
+        return JsonResponse({'error': 'Parámetros insuficientes'}, status=400)
+
+    nivel_id = 90 if nivel == 'Pre' else 30
+    reportes = Reporte.objects.filter(nivel=nivel_id).order_by('fecha_de_examen')
+
+    if not reportes.exists():
+        return JsonResponse({'error': 'No hay reportes disponibles'}, status=404)
+
+    # Obtener intervalos definidos para el curso y nivel
+    intervalos_raw = INTERVALOS[nivel].get(curso, [])
+    intervalos_etiquetas = [f"{rango[0]}-{rango[-1]}" for rango in intervalos_raw]
+
+    def obtener_indice_intervalo(valor):
+        for i, intervalo in enumerate(intervalos_raw):
+            start = intervalo[0]
+            end = intervalo[-1] if len(intervalo) > 1 else intervalo[0]
+            if start <= valor <= end:
+                return i
+        return None  # En caso de que el valor no encaje en ningún intervalo
+
+    config = VariableControl.objects.get(ID_Variable=1)
+    total_preguntas = getattr(config, f"{curso}_Pre" if nivel_id == 90 else f"{curso}_Sem", 0)
+
+    fechas = []
+    correctas_indices = []
+    incorrectas_indices = []
+    blancas_indices = []
+
+    for reporte in reportes:
+        fechas.append(reporte.fecha_de_examen.strftime('%d/%m/%Y'))
+
+        correctas = getattr(reporte, f"{curso}_1", 0)
+        incorrectas = getattr(reporte, f"{curso}_2", 0)
+        blancas = max(0, total_preguntas - correctas - incorrectas)
+
+        correctas_indices.append(obtener_indice_intervalo(correctas))
+        incorrectas_indices.append(obtener_indice_intervalo(incorrectas))
+        blancas_indices.append(obtener_indice_intervalo(blancas))
+
+    return JsonResponse({
+        'labels': fechas,
+        'intervalos': intervalos_etiquetas,
+        'correctas': correctas_indices,
+        'incorrectas': incorrectas_indices,
+        'blancas': blancas_indices,
+    })
 #################PROFESORES
 @login_required
 @estudiante_tipo_requerido(['administrador'])
@@ -199,14 +660,13 @@ def obtener_reportes_resumen(request):
 
 
 
-@login_required
+
 @estudiante_tipo_requerido(['administrador'])
 def iniciar_tarea_reportes(request):
     task = generar_reportes_completos_task.delay()
     return JsonResponse({'task_id': task.id})
 
 
-@login_required
 def obtener_estado_tarea(request, task_id):
     result = AsyncResult(task_id)
     data = {
@@ -817,8 +1277,9 @@ def generar_todos_los_reportes(request):
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_todo_reporte(request):
-    generar_todo_reporte_task.delay()
-    messages.success(request, "Se está generando el reporte en segundo plano. Puedes continuar usando el sistema.")
+    # Lanzar la tarea maestra que engloba la generación de reportes e imágenes
+    generar_reportes_completos_task.delay()
+    messages.success(request, "Se está generando el reporte completo en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 
 def crear_grafico_estudiante_curso(estudiante, nombre_curso, datos):
@@ -928,15 +1389,17 @@ def seleccionar_fecha_generacion(request):
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_imagenes_reportes_por_fecha(request):
-    generar_imagenes_reportes_por_fecha_task.delay()
-    messages.success(request, "Se están generando las imágenes en segundo plano. Puedes continuar usando el sistema.")
+    # Lanzar la tarea maestra que incluye la generación de imágenes
+    generar_reportes_completos_task.delay()
+    messages.success(request, "Se está generando el reporte completo (incluye imágenes) en segundo plano.")
     return redirect('seleccionar_fecha_generacion')
 
 @login_required
 @estudiante_tipo_requerido(['administrador'])
 def generar_reportes_odf_asistencia(request):
     asistencias = Asistencia.objects.all()
-    generar_pdfs_asistencias_por_estudiante_task(asistencias)
+    asistencias_ids = list(Asistencia.objects.values_list('id', flat=True))
+    generar_pdfs_asistencias_por_estudiante_task.delay(asistencias_ids)
     messages.success(request, "Se están generando los reportes para las asistencias en segundo plano. Puedes continuar usando el sistema.")
     return redirect('seleccionar_fecha_generacion')
 

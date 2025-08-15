@@ -125,4 +125,6 @@ class VariableControlForm(forms.ModelForm):
             'EntradaAmanecida': forms.TimeInput(attrs={'type': 'time'}),
             'SalidaAmanecida': forms.TimeInput(attrs={'type': 'time'}),
         }
-        
+
+class ImagenPreguntaForm(forms.Form):
+    imagen = forms.ImageField(label='Selecciona la imagen')
