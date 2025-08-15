@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function(){
     document.querySelectorAll(".nivel-btn").forEach(btn => {
         btn.addEventListener("click", function(){
             nivelSeleccionado = this.dataset.nivel;
-            fetch(`/obtener_fechas_nivel/${nivelSeleccionado}/`)
+            fetch(`/reportes/obtener_fechas_nivel/${nivelSeleccionado}/`)
                 .then(res => res.json())
                 .then(data => {
                     fechasContainer.innerHTML = "";
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function(){
                         fechaBtn.classList.add("fecha-btn");
                         fechaBtn.textContent = fecha;
                         fechaBtn.addEventListener("click", function(){
-                            fetch(`/obtener_resultados_fecha1/${nivelSeleccionado}/${fecha}/`)
+                            fetch(`/reportes/obtener_resultados_fecha1/${nivelSeleccionado}/${fecha}/`)
                                 .then(res => res.json())
                                 .then(data => {
                                     const tbody = document.getElementById("resultados-body");
