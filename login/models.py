@@ -100,7 +100,7 @@ class Reporte(models.Model):
     Ec_1 = models.IntegerField()
     Ec_2 = models.IntegerField()
     fecha_de_examen = models.DateField()
-    Observacion =models.CharField(max_length=600, default="")
+    Observacion =models.CharField(max_length=1500, default="")
     puesto = models.IntegerField()
     reporte_actualizado = models.BooleanField(default=False)
 
