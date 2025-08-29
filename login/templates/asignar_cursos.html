@@ -37,7 +37,7 @@
 <script>
 
   function cargarCursosGenerales() {
-  fetch('/obtener-cursos/')
+  fetch('/reportes/obtener-cursos/')
     .then(response => response.json())
     .then(data => {
       const cont = document.getElementById('lista-cursos-general');
@@ -84,7 +84,7 @@ function mostrarMarcadorSiVacio() {
 }
 
 function cargarCursosProfesor() {
-  fetch(`/obtener-cursos-profesor/${profesorId}/`)
+  fetch(`/reportes/obtener-cursos-profesor/${profesorId}/`)
     .then(r => r.json())
     .then(data => {
       const cont = document.getElementById('lista-cursos-profesor');
@@ -149,7 +149,7 @@ listaProf.addEventListener('drop', e => {
   }
   const ids = JSON.parse(e.dataTransfer.getData('ids'));
   Promise.all(ids.map(id =>
-    fetch('/asignar-curso/', {
+    fetch('/reportes/asignar-curso/', {
       method: 'POST',
       headers: { 'X-CSRFToken': '{{ csrf_token }}' },
       body: new URLSearchParams({ curso_id: id, profesor_id: profesorId })
@@ -166,7 +166,7 @@ listaGeneral.addEventListener('drop', e => {
   e.preventDefault();
   const ids = JSON.parse(e.dataTransfer.getData('ids'));
   Promise.all(ids.map(id =>
-    fetch('/desasignar-curso/', {
+    fetch('/reportes/desasignar-curso/', {
       method: 'POST',
       headers: { 'X-CSRFToken': '{{ csrf_token }}' },
       body: new URLSearchParams({ curso_id: id })
