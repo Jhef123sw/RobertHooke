@@ -10,6 +10,7 @@ class curso(models.Model):
     ]
     nombreCurso = models.CharField(max_length=40, choices=CURSOS)
     estudiante = models.ForeignKey('Estudiante', null=True, blank=True, on_delete=models.SET_NULL, related_name='cursos')
+    costo_hora = models.FloatField(default=0.0)
 
     def __str__(self):
         return f"{self.get_nombreCurso_display()} - {self.estudiante.usuario if self.estudiante else 'Sin estudiante'}"
@@ -43,11 +44,11 @@ class Estudiante(models.Model):
     reporte_actualizado = models.BooleanField(default=False)
     facebook = models.CharField(max_length=50, default="")
     instagram = models.CharField(max_length=50, default="")
-    numCelular = models.CharField(max_length=9, default="")
-    colegio = models.CharField(max_length=30, default="")
+    numCelular = models.CharField(max_length=12, default="")
+    colegio = models.CharField(max_length=80, default="")
     grado = models.IntegerField(choices=GRADO_ESTUDIANTE, default=1)
-    ciudad = models.CharField(max_length=30, default="")
-    carrera = models.CharField(max_length=30, default="")
+    ciudad = models.CharField(max_length=60, default="")
+    carrera = models.CharField(max_length=60, default="")
     ruc = models.CharField(max_length=11, default="")
     fechaCumple = models.DateField(default='1930-01-01')
     numCel2 = models.CharField(max_length=9, default="")

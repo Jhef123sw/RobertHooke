@@ -42,6 +42,41 @@ from datetime import datetime
 from .tasks import generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
 
+#Cursos
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def cursos(request):
+    base_template = "layouts/base_profesor.html"
+    data = []
+
+    cursos = curso.objects.all()
+
+    return render(request, 'cursos_por_profesor.html', {'cursos': cursos, 'base_template': base_template})
+
+@login_required
+@estudiante_tipo_requerido(['administrador'])
+def editar_costo_hora(request):
+    cursos = curso.objects.all()
+
+    if request.method == "POST":
+        for c in cursos:
+            nuevo_costo = request.POST.get(f"costo_{c.id}")
+            if nuevo_costo is not None:
+                try:
+                    c.costo_hora = float(nuevo_costo)
+                    c.save()
+                except ValueError:
+                    messages.error(request, f"Costo inválido para {c.get_nombreCurso_display()}")
+        messages.success(request, "Costos por hora actualizados correctamente ✅")
+        return redirect("editar_costo_hora")
+
+    return render(request, "editar_costo_hora.html", {'base_template': 'layouts/base.html', "cursos": cursos})
+
+
+
+
+
+
 #Resultados
 def dashboard_reportes2(request):
     return render(request, "dashboard_reportes2.html", {'base_template': 'layouts/base.html'})
@@ -263,6 +298,8 @@ def obtener_grafico_por_tipo(request):
         'series': series
     })
 
+def asistencia_desempeño_curso(request, id_curso):
+    return render(request, 'asistencia_desempeño_curso.html', {'base_template': "layouts/base_profesor.html"})    
 
 
 @login_required
