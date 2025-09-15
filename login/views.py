@@ -133,7 +133,7 @@ def obtener_resultados_fecha1(request, nivel, fecha):
 
         resultados.append({
             "puesto": r.puesto,
-            "estudiante": str(r.KK_usuario.usuario),
+            "usuario": str(r.KK_usuario.usuario),
             "estudiante": str(r.KK_usuario.nombre),
             "buenas": buenas,
             "malas": malas,
