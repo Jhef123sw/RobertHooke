@@ -41,6 +41,26 @@
                 </tr>
             </tbody>
         </table>
+        <div class="exportar-pdf">
+            <a id="btn-pdf" href="#" class="btn btn-danger" target="_blank">📄 Exportar PDF</a>
+        </div>
+
+        <script>
+        let nivelSeleccionado = null;
+        let fechaSeleccionada = null;
+
+        document.querySelectorAll(".nivel-btn").forEach(btn => {
+            btn.addEventListener("click", function(){
+                nivelSeleccionado = this.dataset.nivel;
+            });
+        });
+
+        function seleccionarFecha(fecha) {
+            fechaSeleccionada = fecha;
+            document.getElementById("btn-pdf").href = `/reportes/exportar_pdf/${nivelSeleccionado}/${fechaSeleccionada}/`;
+        }
+        </script>
+
     </div>
 
 

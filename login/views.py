@@ -41,6 +41,7 @@ from .models import Reporte, Estudiante, curso
 from datetime import datetime
 from .tasks import generar_reportes_completos_task, generar_pdfs_asistencias_por_estudiante_task
 from celery.result import AsyncResult
+from weasyprint import HTML
 
 #Cursos
 @login_required
@@ -147,9 +148,74 @@ def obtener_resultados_fecha1(request, nivel, fecha):
     return JsonResponse({"resultados": resultados})
 
 
+def obtener_resultados_tabla_todo(request, nivel, fecha):
+    reportes = Reporte.objects.filter(nivel=nivel, fecha_de_examen=fecha).order_by("puesto")
+    if nivel == '90':
+        total_preguntas = 90  # Ajusta según corresponda
+    else:
+        total_preguntas = 45  # Ajusta según corresponda
+    resultados = []
+    for r in reportes:
+        datos = r.obtener_datos()
+        buenas = sum(v[0] for v in datos.values())
+        malas = sum(v[1] for v in datos.values())
+
+        blancas = total_preguntas - (buenas + malas)
+
+        porcentaje_buenas = round((buenas / total_preguntas) * 100, 2)
+        porcentaje_malas = round((malas / total_preguntas) * 100, 2)
+        porcentaje_blancas = round((blancas / total_preguntas) * 100, 2)
+        puntaje = round(r.obtener_total_puntaje(), 2)
+
+        resultados.append({
+            "puesto": r.puesto,
+            "usuario": str(r.KK_usuario.usuario),
+            "estudiante": str(r.KK_usuario.nombre),
+            "buenas": buenas,
+            "malas": malas,
+            "blancas": blancas,
+            "porcentaje_buenas": porcentaje_buenas,
+            "porcentaje_malas": porcentaje_malas,
+            "porcentaje_blancas": porcentaje_blancas,
+            "puntaje": puntaje
+        })
+
+    return JsonResponse({"resultados": resultados})
 
 
+def exportar_pdf(request, nivel, fecha):
+    reportes = Reporte.objects.filter(nivel=nivel, fecha_de_examen=fecha).order_by("puesto")
 
+    resultados = []
+    total_preguntas = 90 if str(nivel) == "90" else 45
+    for r in reportes:
+        datos = r.obtener_datos()
+        buenas = sum(v[0] for v in datos.values())
+        malas = sum(v[1] for v in datos.values())
+        blancas = total_preguntas - (buenas + malas)
+        puntaje = round(r.obtener_total_puntaje(), 2)
+
+        resultados.append({
+            "puesto": r.puesto,
+            "usuario": str(r.KK_usuario.usuario),
+            "estudiante": str(r.KK_usuario.nombre),
+            "buenas": buenas,
+            "malas": malas,
+            "blancas": blancas,
+            "puntaje": puntaje
+        })
+
+    html_string = render_to_string("reportes_pdf.html", {
+        "resultados": resultados,
+        "nivel": "Pre" if str(nivel) == "90" else "Semillero",
+        "fecha": fecha,
+    })
+
+    html = HTML(string=html_string)
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="reporte_{fecha}.pdf"'
+    html.write_pdf(response)
+    return response
 
 
 
