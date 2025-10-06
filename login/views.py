@@ -205,7 +205,7 @@ def exportar_pdf(request, nivel, fecha):
             "puntaje": puntaje
         })
 
-    html_string = render_to_string("reportes_pdf.html", {
+    html_string = render_to_string("exportar_pdf.html", {
         "resultados": resultados,
         "nivel": "Pre" if str(nivel) == "90" else "Semillero",
         "fecha": fecha,
