@@ -135,62 +135,7 @@ document.addEventListener("DOMContentLoaded", function(){
     </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-    const fechasContainer = document.getElementById("fechas-container");
-    const resultadosContainer = document.getElementById("resultados-container");
-    let nivelSeleccionado = null;
 
-    document.querySelectorAll(".nivel-btn").forEach(btn => {
-        btn.addEventListener("click", function(){
-            nivelSeleccionado = this.dataset.nivel;
-            fetch(`/reportes/obtener_fechas_nivel/${nivelSeleccionado}/`)
-                .then(res => res.json())
-                .then(data => {
-                    fechasContainer.innerHTML = "";
-                    data.fechas.forEach(fecha => {
-                        let fechaBtn = document.createElement("button");
-                        fechaBtn.classList.add("fecha-btn");
-                        fechaBtn.textContent = fecha;
-                        fechaBtn.addEventListener("click", function(){
-                            fetch(`/reportes/obtener_resultados_fecha1/${nivelSeleccionado}/${fecha}/`)
-                                .then(res => res.json())
-                                .then(data => {
-                                    const tbody = document.getElementById("resultados-body");
-                                    tbody.innerHTML = "";
-
-                                    if (data.resultados.length > 0) {
-                                        data.resultados.forEach(r => {
-                                            tbody.innerHTML += `
-                                                <tr>
-                                                    <td style="color: black;">${r.puesto}</td>
-                                                    <td style="color: black;">${r.usuario}</td>
-                                                    <td style="color: black;">${r.estudiante}</td>
-                                                    <td style="color: black;">${r.buenas}</td>
-                                                    <td style="color: black;">${r.malas}</td>
-                                                    <td style="color: black;">${r.blancas}</td>
-                                                    <td style="color: black;">${r.porcentaje_buenas}%</td>
-                                                    <td style="color: black;">${r.porcentaje_malas}%</td>
-                                                    <td style="color: black;">${r.porcentaje_blancas}%</td>
-                                                    <td style="color: black;">${r.puntaje}</td>
-                                                </tr>
-                                            `;
-                                        });
-                                    } else {
-                                        tbody.innerHTML = `<tr>
-                                            <td colspan="7" style="text-align:center;">No hay resultados para esta fecha.</td>
-                                        </tr>`;
-                                    }
-                                });
-
-                        });
-                        fechasContainer.appendChild(fechaBtn);
-                    });
-                });
-        });
-    });
-});
-</script>
 </body>
 </html>
 {% endblock %}
