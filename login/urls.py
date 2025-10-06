@@ -10,7 +10,7 @@ urlpatterns = [
     path('obtener_fechas_nivel/<str:nivel>/', obtener_fechas_nivel, name= 'fechas_nivel'),
     path('obtener_resultados_fecha/<str:nivel>/<str:fecha>/', obtener_resultados_fecha, name= 'resultados_fechas_nivel'),
     path('obtener_resultados_fecha1/<str:nivel>/<str:fecha>/', obtener_resultados_fecha1, name= 'resultados_fechas_nivel'),
-    path('/exportar_pdf/<str:nivelSeleccionado>/<str:fechaSeleccionada>/', exportar_pdf, name = 'exportar_pdf'),
+    path('exportar_pdf/<str:nivelSeleccionado>/<str:fechaSeleccionada>/', exportar_pdf, name = 'exportar_pdf'),
     
 
 
