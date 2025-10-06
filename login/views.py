@@ -185,32 +185,147 @@ def obtener_resultados_tabla_todo(request, nivel, fecha):
 
 def exportar_pdf(request, nivel, fecha):
     reportes = Reporte.objects.filter(nivel=nivel, fecha_de_examen=fecha).order_by("puesto")
-
+    config = VariableControl.objects.get(ID_Variable=1)
+    
     resultados = []
     total_preguntas = 90 if str(nivel) == "90" else 45
+    
     for r in reportes:
+        # Calcular respuestas en blanco para cada materia
+        Rv_bl = config.Rv_Pre - r.Rv_1 - r.Rv_2
+        Rm_bl = config.Rm_Pre - r.Rm_1 - r.Rm_2
+        Ar_bl = config.Ar_Pre - r.Ar_1 - r.Ar_2
+        Al_bl = config.Al_Pre - r.Al_1 - r.Al_2
+        Ge_bl = config.Ge_Pre - r.Ge_1 - r.Ge_2
+        Tr_bl = config.Tr_Pre - r.Tr_1 - r.Tr_2
+        Fi_bl = config.Fi_Pre - r.Fi_1 - r.Fi_2
+        Qu_bl = config.Qu_Pre - r.Qu_1 - r.Qu_2
+        Bi_bl = config.Bi_Pre - r.Bi_1 - r.Bi_2
+        Le_bl = config.Le_Pre - r.Le_1 - r.Le_2
+        Lit_bl = config.Lit_Pre - r.Lit_1 - r.Lit_2
+        Hi_bl = config.Hi_Pre - r.Hi_1 - r.Hi_2
+        Gf_bl = config.Gf_Pre - r.Gf_1 - r.Gf_2
+        Fil_bl = config.Fil_Pre - r.Fil_1 - r.Fil_2
+        Psi_bl = config.Psi_Pre - r.Psi_1 - r.Psi_2
+        Ec_bl = config.Ec_Pre - r.Ec_1 - r.Ec_2
+        
+        # Calcular totales
         datos = r.obtener_datos()
-        buenas = sum(v[0] for v in datos.values())
-        malas = sum(v[1] for v in datos.values())
-        blancas = total_preguntas - (buenas + malas)
+        total_buenas = sum(v[0] for v in datos.values())
+        total_malas = sum(v[1] for v in datos.values())
+        total_blancas = total_preguntas - (total_buenas + total_malas)
+        
+        # Calcular porcentajes
+        porcentaje_buenas = round((total_buenas / total_preguntas) * 100)
+        porcentaje_malas = round((total_malas / total_preguntas) * 100)
+        porcentaje_blancas = round((total_blancas / total_preguntas) * 100)
+        
         puntaje = round(r.obtener_total_puntaje(), 2)
-
+        
         resultados.append({
+            # Información básica
             "puesto": r.puesto,
-            "usuario": str(r.KK_usuario.usuario),
-            "estudiante": str(r.KK_usuario.nombre),
-            "buenas": buenas,
-            "malas": malas,
-            "blancas": blancas,
-            "puntaje": puntaje
+            "fecha_de_examen": r.fecha_de_examen,
+            "KK_usuario": r.KK_usuario,
+            "puntaje": puntaje,
+            
+            # Razonamiento Verbal
+            "Rv_1": r.Rv_1,
+            "Rv_2": r.Rv_2,
+            "Rv_bl": Rv_bl,
+            
+            # Razonamiento Matemático
+            "Rm_1": r.Rm_1,
+            "Rm_2": r.Rm_2,
+            "Rm_bl": Rm_bl,
+            
+            # Aritmética
+            "Ar_1": r.Ar_1,
+            "Ar_2": r.Ar_2,
+            "Ar_bl": Ar_bl,
+            
+            # Álgebra
+            "Al_1": r.Al_1,
+            "Al_2": r.Al_2,
+            "Al_bl": Al_bl,
+            
+            # Geometría
+            "Ge_1": r.Ge_1,
+            "Ge_2": r.Ge_2,
+            "Ge_bl": Ge_bl,
+            
+            # Trigonometría
+            "Tr_1": r.Tr_1,
+            "Tr_2": r.Tr_2,
+            "Tr_bl": Tr_bl,
+            
+            # Física
+            "Fi_1": r.Fi_1,
+            "Fi_2": r.Fi_2,
+            "Fi_bl": Fi_bl,
+            
+            # Química
+            "Qu_1": r.Qu_1,
+            "Qu_2": r.Qu_2,
+            "Qu_bl": Qu_bl,
+            
+            # Biología
+            "Bi_1": r.Bi_1,
+            "Bi_2": r.Bi_2,
+            "Bi_bl": Bi_bl,
+            
+            # Lenguaje
+            "Le_1": r.Le_1,
+            "Le_2": r.Le_2,
+            "Le_bl": Le_bl,
+            
+            # Literatura
+            "Lit_1": r.Lit_1,
+            "Lit_2": r.Lit_2,
+            "Lit_bl": Lit_bl,
+            
+            # Historia
+            "Hi_1": r.Hi_1,
+            "Hi_2": r.Hi_2,
+            "Hi_bl": Hi_bl,
+            
+            # Geografía
+            "Gf_1": r.Gf_1,
+            "Gf_2": r.Gf_2,
+            "Gf_bl": Gf_bl,
+            
+            # Economía
+            "Ec_1": r.Ec_1,
+            "Ec_2": r.Ec_2,
+            "Ec_bl": Ec_bl,
+            
+            # Filosofía
+            "Fil_1": r.Fil_1,
+            "Fil_2": r.Fil_2,
+            "Fil_bl": Fil_bl,
+            
+            # Psicología
+            "Psi_1": r.Psi_1,
+            "Psi_2": r.Psi_2,
+            "Psi_bl": Psi_bl,
+            
+            # Totales
+            "total_buenas": total_buenas,
+            "total_malas": total_malas,
+            "total_blancas": total_blancas,
+            
+            # Porcentajes
+            "porcentaje_buenas": porcentaje_buenas,
+            "porcentaje_malas": porcentaje_malas,
+            "porcentaje_blancas": porcentaje_blancas,
         })
-
+    
     html_string = render_to_string("exportar_pdf.html", {
         "resultados": resultados,
         "nivel": "Pre" if str(nivel) == "90" else "Semillero",
         "fecha": fecha,
     })
-
+    
     html = HTML(string=html_string)
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="reporte_{fecha}.pdf"'
