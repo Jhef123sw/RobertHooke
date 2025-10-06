@@ -3,91 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        /* Forzar landscape si el motor de PDF respeta la hoja desde la plantilla */
+        @page { size: A4 landscape; margin: 10mm; }
+
         body {
             font-family: Arial, sans-serif;
-            font-size: 9px;
-            margin: 20px;
+            font-size: 8px;
+            margin: 0;               /* margen controlado por @page */
             color: #000;
         }
+
+        .wrapper {
+            padding: 6mm 8mm;       /* espacio interior */
+        }
+
         .header {
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 6px;
         }
         .header h1 {
             margin: 0;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
         }
         .header p {
-            margin: 3px 0;
-            font-size: 10px;
+            margin: 2px 0;
+            font-size: 9px;
         }
+
         .legend {
             background-color: #f0f0f0;
-            padding: 8px;
-            margin-bottom: 10px;
+            padding: 6px;
+            margin-bottom: 6px;
             border: 1px solid #999;
+            font-size: 8px;
         }
-        .legend-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .legend-content {
-            display: flex;
-            justify-content: space-between;
-        }
-        .legend-col {
-            flex: 1;
-        }
+        .legend-title { font-weight: bold; margin-bottom: 4px; }
+        .legend-content { display:flex; gap:8px; justify-content:space-between; font-size:7.5px; }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8px;
+            font-size: 7.5px;
+            table-layout: fixed;          /* ayuda a controlar anchos */
+            word-wrap: break-word;
         }
+        thead { display: table-header-group; } /* repetir cabecera en varias páginas */
+        tfoot { display: table-row-group; }
+
         th, td {
             border: 1px solid #000;
-            padding: 2px 3px;
+            padding: 3px 4px;
             text-align: center;
+            vertical-align: middle;
         }
         th {
             background-color: #d3d3d3;
             font-weight: bold;
             font-size: 7px;
+            padding: 4px 3px;
         }
-        .section-header {
-            background-color: #b0b0b0 !important;
-            font-weight: bold;
-            font-size: 8px;
-        }
-        .subsection-header {
-            background-color: #e0e0e0 !important;
-            font-size: 7px;
-        }
-        .student-name {
-            text-align: left;
-            padding-left: 5px;
-            font-size: 8px;
-        }
-        .percentage-cell {
-            background-color: #f5f5f5;
-        }
-        .num-cell {
-            min-width: 15px;
-        }
+
+        .section-header { background-color: #b0b0b0; font-weight: bold; font-size: 7.5px; }
+        .subsection-header { background-color: #e0e0e0; font-size: 7px; }
+        .student-name { text-align:left; padding-left:6px; font-size:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+        .percentage-cell { background-color: #f5f5f5; }
+        .num-cell { min-width: 12px; max-width: 24px; }
+
         .footer {
-            margin-top: 10px;
+            margin-top: 6px;
             text-align: right;
-            font-size: 9px;
+            font-size: 8px;
         }
-        .rotate-text {
-            writing-mode: vertical-rl;
-            transform: rotate(180deg);
-            font-size: 7px;
-            padding: 3px 2px;
-        }
+
+        /* Evitar que celdas muy largas rompan el diseño */
+        td { white-space: nowrap; }
+        td.wrap { white-space: normal; word-break: break-word; }
+
+        /* Ajustes para que la tabla respete ancho y aparezca completa en landscape */
+        .wide-col { min-width: 28px; }   /* puedes ajustar por columna */
     </style>
 </head>
 <body>
+<div class="wrapper">
     <div class="header">
         <h1>RESULTADO DE SIMULACRO</h1>
         <p><strong>Fecha:</strong> {{ fecha }}</p>
@@ -96,17 +95,17 @@
     <div class="legend">
         <div class="legend-title">LEYENDA</div>
         <div class="legend-content">
-            <div class="legend-col">
+            <div>
                 <strong>PREGUNTAS DE RAZONAMIENTO</strong><br>
                 BUENAS: 8 PUNTOS<br>
                 MALAS: -0.51 PUNTOS
             </div>
-            <div class="legend-col">
+            <div>
                 <strong>PREGUNTAS DE CONOCIMIENTO</strong><br>
                 BUENAS: 6 PUNTOS<br>
                 MALAS: -0.51 PUNTOS
             </div>
-            <div class="legend-col">
+            <div>
                 B: PREGUNTAS BUENAS<br>
                 M: PREGUNTAS MALAS<br>
                 BL: PREGUNTAS EN BLANCO
@@ -120,16 +119,25 @@
                 <th rowspan="3">Nº</th>
                 <th rowspan="3">Fecha</th>
                 <th rowspan="3">Cód.</th>
-                <th rowspan="3">Nombre y Apellido</th>
+                <th rowspan="3" style="width:160px">Nombre y Apellido</th>
+
+                <!-- RAZONAMIENTO (30) -->
                 <th colspan="9" class="section-header">RAZONAMIENTO (30 PREGUNTAS)</th>
+
+                <!-- CONOCIMIENTO (60) -->
                 <th colspan="48" class="section-header">PREGUNTAS DE CONOCIMIENTO (60 PREGUNTAS)</th>
+
                 <th rowspan="3">Punt.</th>
                 <th colspan="3" class="section-header">PORCENTAJE DE AVANCE</th>
             </tr>
+
             <tr>
+                <!-- Raz subsections -->
                 <th colspan="3" class="subsection-header">RAZ. VERBAL<br>(15)</th>
                 <th colspan="3" class="subsection-header">RAZ. MATEM.<br>(15)</th>
                 <th colspan="3" class="subsection-header">ARITM.<br>(5)</th>
+
+                <!-- Conocimiento subsections (continúan hasta encajar 60 preguntas) -->
                 <th colspan="3" class="subsection-header">ÁLGEB.<br>(5)</th>
                 <th colspan="3" class="subsection-header">GEOM.<br>(4)</th>
                 <th colspan="3" class="subsection-header">TRIGON.<br>(4)</th>
@@ -143,16 +151,18 @@
                 <th colspan="3" class="subsection-header">ECON.<br>(2)</th>
                 <th colspan="3" class="subsection-header">FILOS.<br>(2)</th>
                 <th colspan="3" class="subsection-header">PSICO.<br>(2)</th>
+
                 <th rowspan="2">BUENAS</th>
                 <th rowspan="2">MALAS</th>
                 <th rowspan="2">BLANCO</th>
             </tr>
+
             <tr>
+                <!-- Columnas B / M / BL repetidas -->
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
-                <th>B</th><th>M</th><th>BL</th>
-                <th>B</th><th>M</th><th>BL</th>
+
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
@@ -166,6 +176,7 @@
                 <th>B</th><th>M</th><th>BL</th>
             </tr>
         </thead>
+
         <tbody>
         {% for r in resultados %}
             <tr>
@@ -173,90 +184,90 @@
                 <td>{{ r.fecha_de_examen|date:"d/m/Y" }}</td>
                 <td>{{ r.KK_usuario.codigo }}</td>
                 <td class="student-name">{{ r.KK_usuario.nombre_completo|upper }}</td>
-                
+
                 <!-- Razonamiento Verbal -->
                 <td class="num-cell">{{ r.Rv_1 }}</td>
                 <td class="num-cell">{{ r.Rv_2 }}</td>
                 <td class="num-cell">{{ r.Rv_bl }}</td>
-                
+
                 <!-- Razonamiento Matemático -->
                 <td class="num-cell">{{ r.Rm_1 }}</td>
                 <td class="num-cell">{{ r.Rm_2 }}</td>
                 <td class="num-cell">{{ r.Rm_bl }}</td>
-                
+
                 <!-- Aritmética -->
                 <td class="num-cell">{{ r.Ar_1 }}</td>
                 <td class="num-cell">{{ r.Ar_2 }}</td>
                 <td class="num-cell">{{ r.Ar_bl }}</td>
-                
+
                 <!-- Álgebra -->
                 <td class="num-cell">{{ r.Al_1 }}</td>
                 <td class="num-cell">{{ r.Al_2 }}</td>
                 <td class="num-cell">{{ r.Al_bl }}</td>
-                
+
                 <!-- Geometría -->
                 <td class="num-cell">{{ r.Ge_1 }}</td>
                 <td class="num-cell">{{ r.Ge_2 }}</td>
                 <td class="num-cell">{{ r.Ge_bl }}</td>
-                
+
                 <!-- Trigonometría -->
                 <td class="num-cell">{{ r.Tr_1 }}</td>
                 <td class="num-cell">{{ r.Tr_2 }}</td>
                 <td class="num-cell">{{ r.Tr_bl }}</td>
-                
+
                 <!-- Física -->
                 <td class="num-cell">{{ r.Fi_1 }}</td>
                 <td class="num-cell">{{ r.Fi_2 }}</td>
                 <td class="num-cell">{{ r.Fi_bl }}</td>
-                
+
                 <!-- Química -->
                 <td class="num-cell">{{ r.Qu_1 }}</td>
                 <td class="num-cell">{{ r.Qu_2 }}</td>
                 <td class="num-cell">{{ r.Qu_bl }}</td>
-                
+
                 <!-- Biología -->
                 <td class="num-cell">{{ r.Bi_1 }}</td>
                 <td class="num-cell">{{ r.Bi_2 }}</td>
                 <td class="num-cell">{{ r.Bi_bl }}</td>
-                
+
                 <!-- Lenguaje -->
                 <td class="num-cell">{{ r.Le_1 }}</td>
                 <td class="num-cell">{{ r.Le_2 }}</td>
                 <td class="num-cell">{{ r.Le_bl }}</td>
-                
+
                 <!-- Literatura -->
                 <td class="num-cell">{{ r.Lit_1 }}</td>
                 <td class="num-cell">{{ r.Lit_2 }}</td>
                 <td class="num-cell">{{ r.Lit_bl }}</td>
-                
+
                 <!-- Historia -->
                 <td class="num-cell">{{ r.Hi_1 }}</td>
                 <td class="num-cell">{{ r.Hi_2 }}</td>
                 <td class="num-cell">{{ r.Hi_bl }}</td>
-                
+
                 <!-- Geografía -->
                 <td class="num-cell">{{ r.Gf_1 }}</td>
                 <td class="num-cell">{{ r.Gf_2 }}</td>
                 <td class="num-cell">{{ r.Gf_bl }}</td>
-                
+
                 <!-- Economía -->
                 <td class="num-cell">{{ r.Ec_1 }}</td>
                 <td class="num-cell">{{ r.Ec_2 }}</td>
                 <td class="num-cell">{{ r.Ec_bl }}</td>
-                
+
                 <!-- Filosofía -->
                 <td class="num-cell">{{ r.Fil_1 }}</td>
                 <td class="num-cell">{{ r.Fil_2 }}</td>
                 <td class="num-cell">{{ r.Fil_bl }}</td>
-                
+
                 <!-- Psicología -->
                 <td class="num-cell">{{ r.Psi_1 }}</td>
                 <td class="num-cell">{{ r.Psi_2 }}</td>
                 <td class="num-cell">{{ r.Psi_bl }}</td>
-                
+
                 <!-- Puntaje -->
                 <td><strong>{{ r.puntaje }}</strong></td>
-                
+
                 <!-- Porcentajes -->
                 <td class="percentage-cell">{{ r.porcentaje_buenas }}%</td>
                 <td class="percentage-cell">{{ r.porcentaje_malas }}%</td>
@@ -270,5 +281,6 @@
         <strong>{{ resultados|length }} ALUMNOS EVALUADOS</strong><br>
         Generado: {{ fecha }}
     </div>
+</div>
 </body>
 </html>
