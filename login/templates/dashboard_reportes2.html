@@ -46,20 +46,84 @@
         </div>
 
         <script>
-        let nivelSeleccionado = null;
-        let fechaSeleccionada = null;
+document.addEventListener("DOMContentLoaded", function(){
+    const fechasContainer = document.getElementById("fechas-container");
+    const resultadosContainer = document.getElementById("resultados-container");
+    const btnPdf = document.getElementById("btn-pdf");
+    const tbody = document.getElementById("resultados-body");
 
-        document.querySelectorAll(".nivel-btn").forEach(btn => {
-            btn.addEventListener("click", function(){
-                nivelSeleccionado = this.dataset.nivel;
-            });
+    let nivelSeleccionado = null;
+    let fechaSeleccionada = null;
+
+    // Botones de nivel
+    document.querySelectorAll(".nivel-btn").forEach(btn => {
+        btn.addEventListener("click", function(){
+            nivelSeleccionado = this.dataset.nivel;
+            // Reset UI
+            fechasContainer.innerHTML = "";
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">Seleccione una fecha...</td></tr>`;
+            btnPdf.href = "#";
+            btnPdf.classList.add("disabled");
+            fetch(`/reportes/obtener_fechas_nivel/${nivelSeleccionado}/`)
+                .then(res => res.json())
+                .then(data => {
+                    fechasContainer.innerHTML = "";
+                    data.fechas.forEach(fecha => {
+                        const fechaBtn = document.createElement("button");
+                        fechaBtn.classList.add("fecha-btn", "btn", "btn-outline-secondary", "me-2", "mb-2");
+                        fechaBtn.textContent = fecha;
+                        fechaBtn.addEventListener("click", function(){
+                            // Actualiza fechaSeleccionada y el href del botón PDF
+                            fechaSeleccionada = fecha;
+                            // Asegúrate de usar la misma ruta definida en urls.py:
+                            btnPdf.href = `/reportes/exportar_pdf/${nivelSeleccionado}/${fechaSeleccionada}/`;
+                            btnPdf.classList.remove("disabled");
+
+                            // Llamada para poblar la tabla
+                            fetch(`/reportes/obtener_resultados_fecha1/${nivelSeleccionado}/${fecha}/`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    tbody.innerHTML = "";
+                                    if (data.resultados && data.resultados.length > 0) {
+                                        data.resultados.forEach(r => {
+                                            tbody.innerHTML += `
+                                                <tr>
+                                                    <td style="color: black;">${r.puesto}</td>
+                                                    <td style="color: black;">${r.usuario}</td>
+                                                    <td style="color: black;">${r.estudiante}</td>
+                                                    <td style="color: black;">${r.buenas}</td>
+                                                    <td style="color: black;">${r.malas}</td>
+                                                    <td style="color: black;">${r.blancas}</td>
+                                                    <td style="color: black;">${r.porcentaje_buenas}%</td>
+                                                    <td style="color: black;">${r.porcentaje_malas}%</td>
+                                                    <td style="color: black;">${r.porcentaje_blancas}%</td>
+                                                    <td style="color: black;">${r.puntaje}</td>
+                                                </tr>
+                                            `;
+                                        });
+                                    } else {
+                                        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No hay resultados para esta fecha.</td></tr>`;
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Error al obtener resultados:", err);
+                                    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:red">Error al cargar resultados</td></tr>`;
+                                });
+                        });
+                        fechasContainer.appendChild(fechaBtn);
+                    });
+                })
+                .catch(err => {
+                    console.error("Error al obtener fechas:", err);
+                    fechasContainer.innerHTML = `<div class="text-danger">Error al cargar fechas</div>`;
+                });
         });
+    });
 
-        function seleccionarFecha(fecha) {
-            fechaSeleccionada = fecha;
-            document.getElementById("btn-pdf").href = `/reportes/exportar_pdf/${nivelSeleccionado}/${fechaSeleccionada}/`;
-        }
-        </script>
+    // Inicial: deshabilita botón PDF hasta seleccionar fecha
+    if (btnPdf) btnPdf.classList.add("disabled");
+});
+</script>
 
     </div>
 
