@@ -118,7 +118,7 @@ def obtener_resultados_fecha1(request, nivel, fecha):
     if nivel == '90':
         total_preguntas = 90  # Ajusta según corresponda
     else:
-        total_preguntas = 45  # Ajusta según corresponda
+        total_preguntas = 35  # Ajusta según corresponda
     resultados = []
     for r in reportes:
         datos = r.obtener_datos()
