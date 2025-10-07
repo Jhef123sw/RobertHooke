@@ -96,6 +96,11 @@
         <div class="legend-title">LEYENDA</div>
         <div class="legend-content">
             <div>
+                B: PREGUNTAS BUENAS<br>
+                M: PREGUNTAS MALAS<br>
+                BL: PREGUNTAS EN BLANCO
+            </div>
+            <div>
                 <strong>PREGUNTAS DE RAZONAMIENTO</strong><br>
                 BUENAS: 8 PUNTOS<br>
                 MALAS: -0.51 PUNTOS
@@ -105,11 +110,6 @@
                 BUENAS: 6 PUNTOS<br>
                 MALAS: -0.51 PUNTOS
             </div>
-            <div>
-                B: PREGUNTAS BUENAS<br>
-                M: PREGUNTAS MALAS<br>
-                BL: PREGUNTAS EN BLANCO
-            </div>
         </div>
     </div>
 
@@ -117,18 +117,16 @@
         <thead>
             <tr>
                 <th rowspan="3">Nº</th>
-                <th rowspan="3">Fecha</th>
-                <th rowspan="3">Cód.</th>
+                <th rowspan="3" style="width:50px">Fecha</th>
+                <th rowspan="3" style="width:30px">Cód.</th>
                 <th rowspan="3" style="width:160px">Nombre y Apellido</th>
 
                 <!-- RAZONAMIENTO (30) -->
                 <th colspan="9" class="section-header">RAZONAMIENTO (30 PREGUNTAS)</th>
 
                 <!-- CONOCIMIENTO (60) -->
-                <th colspan="48" class="section-header">PREGUNTAS DE CONOCIMIENTO (60 PREGUNTAS)</th>
+                <th colspan="39" class="section-header">PREGUNTAS DE CONOCIMIENTO (60 PREGUNTAS)</th>
 
-                <th rowspan="3">Punt.</th>
-                <th colspan="3" class="section-header">PORCENTAJE DE AVANCE</th>
             </tr>
 
             <tr>
@@ -152,9 +150,6 @@
                 <th colspan="3" class="subsection-header">FILOS.<br>(2)</th>
                 <th colspan="3" class="subsection-header">PSICO.<br>(2)</th>
 
-                <th rowspan="2">BUENAS</th>
-                <th rowspan="2">MALAS</th>
-                <th rowspan="2">BLANCO</th>
             </tr>
 
             <tr>
@@ -174,6 +169,8 @@
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
                 <th>B</th><th>M</th><th>BL</th>
+                <th>B</th><th>M</th><th>BL</th>
+                <th>B</th><th>M</th><th>BL</th>
             </tr>
         </thead>
 
@@ -182,8 +179,8 @@
             <tr>
                 <td class="num-cell">{{ forloop.counter }}</td>
                 <td>{{ r.fecha_de_examen|date:"d/m/Y" }}</td>
-                <td>{{ r.KK_usuario.codigo }}</td>
-                <td class="student-name">{{ r.KK_usuario.nombre_completo|upper }}</td>
+                <td>{{ r.KK_usuario.usuario }}</td>
+                <td class="student-name">{{ r.KK_usuario.nombre|upper }}</td>
 
                 <!-- Razonamiento Verbal -->
                 <td class="num-cell">{{ r.Rv_1 }}</td>
@@ -264,14 +261,6 @@
                 <td class="num-cell">{{ r.Psi_1 }}</td>
                 <td class="num-cell">{{ r.Psi_2 }}</td>
                 <td class="num-cell">{{ r.Psi_bl }}</td>
-
-                <!-- Puntaje -->
-                <td><strong>{{ r.puntaje }}</strong></td>
-
-                <!-- Porcentajes -->
-                <td class="percentage-cell">{{ r.porcentaje_buenas }}%</td>
-                <td class="percentage-cell">{{ r.porcentaje_malas }}%</td>
-                <td class="percentage-cell">{{ r.porcentaje_blancas }}%</td>
             </tr>
         {% endfor %}
         </tbody>
