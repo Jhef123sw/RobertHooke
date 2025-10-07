@@ -188,7 +188,7 @@ def exportar_pdf(request, nivel, fecha):
     config = VariableControl.objects.get(ID_Variable=1)
     
     resultados = []
-    total_preguntas = 90 if str(nivel) == "90" else 45
+    total_preguntas = 90 if str(nivel) == "90" else 35
     
     for r in reportes:
         # Calcular respuestas en blanco para cada materia

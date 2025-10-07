@@ -120,6 +120,7 @@
                 <th rowspan="3" style="width:50px">Fecha</th>
                 <th rowspan="3" style="width:30px">Cód.</th>
                 <th rowspan="3" style="width:160px">Nombre y Apellido</th>
+                <th rowspan="3" style="width:30px">Punt.</th>
 
                 <!-- RAZONAMIENTO (30) -->
                 <th colspan="9" class="section-header">RAZONAMIENTO (30 PREGUNTAS)</th>
@@ -181,6 +182,7 @@
                 <td>{{ r.fecha_de_examen|date:"d/m/Y" }}</td>
                 <td>{{ r.KK_usuario.usuario }}</td>
                 <td class="student-name">{{ r.KK_usuario.nombre|upper }}</td>
+                <td class="student-name">{{ r.puntaje }}</td>
 
                 <!-- Razonamiento Verbal -->
                 <td class="num-cell">{{ r.Rv_1 }}</td>
